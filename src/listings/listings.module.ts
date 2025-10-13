@@ -1,0 +1,17 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PassportModule } from '@nestjs/passport';
+import { ListingsService } from './listings.service';
+import { ListingsController } from './listings.controller';
+import { Listing } from '../entities/listings.entity';
+import { User } from '../entities/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([Listing, User]),
+    PassportModule,
+  ],
+  controllers: [ListingsController],
+  providers: [ListingsService],
+})
+export class ListingsModule {}
