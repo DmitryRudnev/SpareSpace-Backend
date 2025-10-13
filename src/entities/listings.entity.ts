@@ -18,7 +18,7 @@ export class Listing {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 18, scale: 8 })
   price: number;
 
   @Column({ type: 'geometry', srid: 4326, nullable: true })
@@ -26,6 +26,9 @@ export class Listing {
 
   @Column()
   address: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  size: number;
 
   @Column({ type: 'jsonb', nullable: true })
   photos_json: any;

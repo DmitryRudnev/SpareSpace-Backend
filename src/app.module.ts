@@ -6,8 +6,9 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from './auth/auth.module';
 import { User } from './entities/user.entity';
 import { UserToken } from './entities/user-token.entity';
-import { ListingsModule } from './listings/listings.module';
 import { Listing } from './entities/listings.entity';
+import { ViewHistory } from './entities/view-history.entity';
+import { ListingsModule } from './listings/listings.module';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { Listing } from './entities/listings.entity';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [User, UserToken, Listing],
+        entities: [User, UserToken, Listing, ViewHistory],
         synchronize: false,
       }),
       inject: [ConfigService],

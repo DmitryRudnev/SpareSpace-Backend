@@ -1,4 +1,13 @@
-import { IsString, IsEnum, IsNumber, IsOptional, IsArray, Min, Max } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class AvailabilityPeriodDto {
+  @IsString()
+  start: string;
+
+  @IsString()
+  end: string;
+}
 
 export class CreateListingDto {
   @IsEnum(['garage', 'storage', 'parking'])
@@ -30,14 +39,22 @@ export class CreateListingDto {
   @IsString()
   address: string;
 
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  size: number;
+
   @IsArray()
   @IsOptional()
   photos_json: string[];
 
+  @IsObject()
   @IsOptional()
   amenities: any;
 
   @IsArray()
   @IsOptional()
-  availability: string[];
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilityPeriodDto)
+  availability: AvailabilityPeriodDto[];
 }

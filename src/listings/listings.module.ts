@@ -5,10 +5,11 @@ import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
 import { Listing } from '../entities/listings.entity';
 import { User } from '../entities/user.entity';
+import { ViewHistory } from '../entities/view-history.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Listing, User]),
+    TypeOrmModule.forFeature([Listing, User, ViewHistory]),
     PassportModule,
   ],
   controllers: [ListingsController],

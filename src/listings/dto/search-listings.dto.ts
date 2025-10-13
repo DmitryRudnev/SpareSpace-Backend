@@ -35,4 +35,14 @@ export class SearchListingsDto {
   @IsObject()
   @IsOptional()
   amenities: any;
+
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  limit: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  offset: number;
 }

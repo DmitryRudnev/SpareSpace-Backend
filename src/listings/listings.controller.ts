@@ -22,8 +22,8 @@ export class ListingsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.listingsService.findOne(+id);
+  findOne(@Param('id') id: string, @User('userId') userId?: number) {
+    return this.listingsService.findOne(+id, userId);
   }
 
   @UseGuards(JwtAuthGuard)
