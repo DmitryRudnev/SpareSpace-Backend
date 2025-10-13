@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeleteResult } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
@@ -31,13 +31,19 @@ export class AuthService {
     if (exists) throw new ConflictException('Email already exists');
   }
 
+  private async checkPhoneExists(phone: string) {
+    const exists = await this.userRepository.findOneBy({ phone });
+    if (exists) throw new ConflictException('Phone already exists');
+  }
+
   private async createUser(dto: RegisterDto) {
     const hash = await bcrypt.hash(dto.password, this.BCRYPT_SALT_ROUNDS);
     const user = this.userRepository.create({
       email: dto.email,
+      phone: dto.phone,
       password_hash: hash,
       full_name: dto.full_name,
-      role: this.DEFAULT_USER_ROLE,
+      role: dto.role || this.DEFAULT_USER_ROLE,
     });
     return this.userRepository.save(user);
   }
@@ -60,20 +66,20 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private async saveTokens(userId: number, accessToken: string, refreshToken: string) {
+  private async saveTokens(userId: number, refreshToken: string) {
     await this.tokenRepository.save({
       user_id: userId,
       refresh_token: refreshToken,
-      access_token: accessToken,
       expiry: new Date(Date.now() + this.getRefreshTokenExpiryMs()),
     });
   }
 
   async register(dto: RegisterDto) {
     await this.checkEmailExists(dto.email);
+    await this.checkPhoneExists(dto.phone);
     const user = await this.createUser(dto);
     const { accessToken, refreshToken } = await this.generateTokens(user);
-    await this.saveTokens(user.id, accessToken, refreshToken);
+    await this.saveTokens(user.id, refreshToken);
     return { accessToken, refreshToken };
   }
 
@@ -88,21 +94,17 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto);
     const { accessToken, refreshToken } = await this.generateTokens(user);
-    await this.saveTokens(user.id, accessToken, refreshToken);
+    await this.saveTokens(user.id, refreshToken);
     return { accessToken, refreshToken };
   }
 
   async refresh(refreshToken: string) {
     const token = await this.tokenRepository.findOneBy({ refresh_token: refreshToken });
     if (!token || token.expiry < new Date()) throw new UnauthorizedException('Invalid or expired token');
+    await this.tokenRepository.delete({ refresh_token: refreshToken });
     const user = await this.userRepository.findOneBy({ id: token.user_id });
-    const accessToken = this.jwtService.sign(
-      { sub: user.id, role: user.role },
-      {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRES_IN'),
-      }
-    );
-    return { accessToken };
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(user);
+    await this.saveTokens(user.id, newRefreshToken);
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 }

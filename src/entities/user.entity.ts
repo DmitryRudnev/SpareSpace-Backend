@@ -8,6 +8,9 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ unique: true })
+  phone: string;
+
   @Column()
   password_hash: string;
 
@@ -17,8 +20,14 @@ export class User {
   @Column({ type: 'enum', enum: ['RENTER', 'LANDLORD', 'ADMIN'], default: 'RENTER' })
   role: string;
 
+  @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
+  rating: number;
+
   @Column({ default: false })
   two_fa_enabled: boolean;
+
+  @Column({ default: false })
+  verified: boolean;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

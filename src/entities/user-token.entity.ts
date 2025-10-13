@@ -11,9 +11,6 @@ export class UserToken {
   @Column()
   refresh_token: string;
 
-  @Column()
-  access_token: string;
-
   @Column({ type: 'timestamp' })
   expiry: Date;
 
