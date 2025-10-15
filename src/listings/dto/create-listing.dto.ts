@@ -24,6 +24,10 @@ export class CreateListingDto {
   @Min(0)
   price: number;
 
+  @IsOptional()
+  @IsEnum(['RUB', 'USD', 'USDT', 'ETH', 'TRX'])
+  currency?: string;
+
   @IsNumber()
   @IsOptional()
   @Min(-90)

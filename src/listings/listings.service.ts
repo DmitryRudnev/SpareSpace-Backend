@@ -54,6 +54,7 @@ export class ListingsService {
       title: dto.title,
       description: dto.description,
       price: dto.price,
+      currency: dto.currency || 'RUB',
       location: this.createLocationPoint(dto),
       address: dto.address,
       size: dto.size,
@@ -124,6 +125,7 @@ export class ListingsService {
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.price !== undefined) listing.price = dto.price;
+    if (dto.currency !== undefined) listing.currency = dto.currency;
     if (dto.latitude !== undefined || dto.longitude !== undefined) {
       listing.location = this.createLocationPoint(dto);
     }

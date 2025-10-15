@@ -18,8 +18,11 @@ export class Listing {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal', precision: 18, scale: 8 })
+  @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
+
+  @Column({ type: 'enum', enum: ['RUB', 'USD', 'USDT', 'ETH', 'TRX'], default: 'RUB' })
+  currency: string;
 
   @Column({ type: 'geometry', srid: 4326, nullable: true })
   location: string;
