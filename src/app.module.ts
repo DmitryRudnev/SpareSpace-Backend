@@ -8,7 +8,9 @@ import { User } from './entities/user.entity';
 import { UserToken } from './entities/user-token.entity';
 import { Listing } from './entities/listings.entity';
 import { ViewHistory } from './entities/view-history.entity';
+import { Booking } from './entities/booking.entity';
 import { ListingsModule } from './listings/listings.module';
+import { BookingsModule } from './bookings/bookings.module';
 
 @Module({
   imports: [
@@ -31,13 +33,14 @@ import { ListingsModule } from './listings/listings.module';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [User, UserToken, Listing, ViewHistory],
+        entities: [User, UserToken, Listing, ViewHistory, Booking],
         synchronize: false,
       }),
       inject: [ConfigService],
     }),
     AuthModule,
     ListingsModule,
+    BookingsModule,
   ],
 })
 export class AppModule {}
