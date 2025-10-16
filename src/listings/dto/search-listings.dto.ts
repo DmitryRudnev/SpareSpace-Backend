@@ -1,7 +1,7 @@
-import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
 
 export class SearchListingsDto {
-  @IsEnum(['garage', 'storage', 'parking'])
+  @IsIn(['garage', 'storage', 'parking'])
   @IsOptional()
   type: string;
 
