@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { UserRole } from './user-role.entity';
 
 @Entity('users')
 export class User {
@@ -17,8 +18,8 @@ export class User {
   @Column()
   full_name: string;
 
-  @Column({ type: 'enum', enum: ['RENTER', 'LANDLORD', 'ADMIN'], default: 'RENTER' })
-  role: string;
+  @OneToMany(() => UserRole, userRole => userRole.user)
+  userRoles: UserRole[];
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
   rating: number;

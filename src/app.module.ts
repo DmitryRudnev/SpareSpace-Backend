@@ -13,6 +13,7 @@ import { Review } from './entities/review.entity';
 import { ListingsModule } from './listings/listings.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -22,7 +23,10 @@ import { ReviewsModule } from './reviews/reviews.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
-        signOptions: { expiresIn: configService.get('JWT_EXPIRES_IN') },
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN'),
+          algorithm: 'HS256',
+        },
       }),
       inject: [ConfigService],
     }),
@@ -44,6 +48,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     ListingsModule,
     BookingsModule,
     ReviewsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

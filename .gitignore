@@ -2,9 +2,6 @@
 /dist
 /node_modules
 /build
-/AAA
-/NOTES.txt
-/TO_DO.txt
 *.env
 
 # Logs
