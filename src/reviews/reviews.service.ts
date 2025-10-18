@@ -83,10 +83,4 @@ export class ReviewsService {
     if (!review) throw new NotFoundException('Review not found');
     return review;
   }
-
-  async getAvgRating(userId: number) {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) throw new NotFoundException('User not found');
-    return user.rating || 0;
-  }
 }

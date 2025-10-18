@@ -24,9 +24,4 @@ export class ReviewsController {
   findOne(@Param('id') id: string) {
     return this.reviewsService.findOne(+id);
   }
-
-  @Get('user/:id/avg')
-  getAvgRating(@Param('id') id: string) {
-    return this.reviewsService.getAvgRating(+id);
-  }
 }
