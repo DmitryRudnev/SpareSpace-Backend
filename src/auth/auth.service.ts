@@ -3,11 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DeleteResult } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto'; // Добавлено
 import { User } from '../entities/user.entity';
 import { UserToken } from '../entities/user-token.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     @InjectRepository(UserToken) private tokenRepository: Repository<UserToken>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private userService: UserService,
   ) {}
 
   private getRefreshTokenExpiryMs(): number {
@@ -43,34 +46,29 @@ export class AuthService {
       phone: dto.phone,
       password_hash: hash,
       full_name: dto.full_name,
-      role: dto.role || this.DEFAULT_USER_ROLE,
     });
     return this.userRepository.save(user);
   }
 
   private async generateTokens(user: User) {
-    const accessToken = this.jwtService.sign(
-      { sub: user.id, role: user.role },
-      {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRES_IN'),
-      }
-    );
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id },
-      {
-        secret: this.configService.get('REFRESH_TOKEN_SECRET'),
-        expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRES_IN'),
-      },
-    );
-    return { accessToken, refreshToken };
+    const roles = await this.userService.getUserRoles(user.id);
+    const payload = { sub: user.id, roles };
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_EXPIRES_IN'),
+    });
+
+    const refreshToken = crypto.randomBytes(64).toString('base64url');
+    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
+
+    return { accessToken, refreshToken, refreshTokenHash };
   }
 
-  private async saveTokens(userId: number, refreshToken: string) {
+  private async saveTokens(userId: number, refreshTokenHash: string) {
     await this.tokenRepository.save({
       user_id: userId,
-      refresh_token: refreshToken,
+      refresh_token_hash: refreshTokenHash,
       expiry: new Date(Date.now() + this.getRefreshTokenExpiryMs()),
+      revoked: false,
     });
   }
 
@@ -78,8 +76,9 @@ export class AuthService {
     await this.checkEmailExists(dto.email);
     await this.checkPhoneExists(dto.phone);
     const user = await this.createUser(dto);
-    const { accessToken, refreshToken } = await this.generateTokens(user);
-    await this.saveTokens(user.id, refreshToken);
+    await this.userService.addRole(user.id, this.DEFAULT_USER_ROLE);
+    const { accessToken, refreshToken, refreshTokenHash } = await this.generateTokens(user);
+    await this.saveTokens(user.id, refreshTokenHash);
     return { accessToken, refreshToken };
   }
 
@@ -93,18 +92,21 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto);
-    const { accessToken, refreshToken } = await this.generateTokens(user);
-    await this.saveTokens(user.id, refreshToken);
+    const { accessToken, refreshToken, refreshTokenHash } = await this.generateTokens(user);
+    await this.saveTokens(user.id, refreshTokenHash);
     return { accessToken, refreshToken };
   }
 
   async refresh(refreshToken: string) {
-    const token = await this.tokenRepository.findOneBy({ refresh_token: refreshToken });
-    if (!token || token.expiry < new Date()) throw new UnauthorizedException('Invalid or expired token');
-    await this.tokenRepository.delete({ refresh_token: refreshToken });
+    const tokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
+    const token = await this.tokenRepository.findOneBy({ refresh_token_hash: tokenHash });
+    if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');
+    
+    await this.tokenRepository.update(token.id, { revoked: true });
+
     const user = await this.userRepository.findOneBy({ id: token.user_id });
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(user);
-    await this.saveTokens(user.id, newRefreshToken);
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenHash: newHash } = await this.generateTokens(user);
+    await this.saveTokens(user.id, newHash);
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 }
