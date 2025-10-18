@@ -7,6 +7,7 @@ import { ViewHistory } from '../entities/view-history.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class ListingsService {
@@ -14,6 +15,7 @@ export class ListingsService {
     @InjectRepository(Listing) private listingRepository: Repository<Listing>,
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(ViewHistory) private viewHistoryRepository: Repository<ViewHistory>,
+    private userService: UserService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -23,7 +25,8 @@ export class ListingsService {
   }
 
   private async validateLandlordRole(user: User) {
-    if (user.role !== 'LANDLORD') throw new UnauthorizedException('Only landlords can create listings');
+    const hasLandlord = await this.userService.hasRole(user.id, 'LANDLORD');
+    if (!hasLandlord) throw new UnauthorizedException('Only landlords can create listings');
   }
 
   private createLocationPoint(dto: CreateListingDto | UpdateListingDto) {

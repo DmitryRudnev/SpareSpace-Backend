@@ -6,11 +6,13 @@ import { ListingsController } from './listings.controller';
 import { Listing } from '../entities/listings.entity';
 import { User } from '../entities/user.entity';
 import { ViewHistory } from '../entities/view-history.entity';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Listing, User, ViewHistory]),
     PassportModule,
+    UsersModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService],
