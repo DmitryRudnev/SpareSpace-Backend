@@ -7,6 +7,7 @@ import { User } from '../entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { SearchBookingsDto } from './dto/search-bookings.dto';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class BookingsService {
@@ -14,6 +15,7 @@ export class BookingsService {
     @InjectRepository(Booking) private bookingRepository: Repository<Booking>,
     @InjectRepository(Listing) private listingRepository: Repository<Listing>,
     @InjectRepository(User) private userRepository: Repository<User>,
+    private userService: UserService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -23,11 +25,13 @@ export class BookingsService {
   }
 
   private async validateRenterRole(user: User) {
-    if (user.role !== 'RENTER') throw new UnauthorizedException('Only renters can create bookings');
+    const hasRenter = await this.userService.hasRole(user.id, 'RENTER');
+    if (!hasRenter) throw new UnauthorizedException('Only renters can create bookings');
   }
 
   private async validateLandlordOwnership(booking: Booking, userId: number) {
-    if (booking.listing_id.user_id.id !== userId) throw new UnauthorizedException('Not authorized to modify this booking');
+    const hasLandlord = await this.userService.hasRole(userId, 'LANDLORD');
+    if (!hasLandlord) throw new UnauthorizedException('Not authorized to modify this booking');
   }
 
   private calculateDuration(start: Date, end: Date): number {
