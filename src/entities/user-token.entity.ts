@@ -8,11 +8,14 @@ export class UserToken {
   @Column()
   user_id: number;
 
-  @Column()
-  refresh_token: string;
+  @Column({ name: 'refresh_token_hash' })
+  refresh_token_hash: string;
 
   @Column({ type: 'timestamp' })
   expiry: Date;
+
+  @Column({ default: false })
+  revoked: boolean;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

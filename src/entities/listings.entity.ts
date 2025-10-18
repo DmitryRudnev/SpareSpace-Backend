@@ -42,7 +42,7 @@ export class Listing {
   @Column({ type: 'tsrange', array: true, default: '{}' })
   availability: string[];
 
-  @Column({ type: 'enum', enum: ['ACTIVE', 'MODERATED', 'INACTIVE'], default: 'ACTIVE' })
+  @Column({ type: 'enum', enum: ['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'REJECTED', 'INACTIVE'], default: 'DRAFT' })
   status: string;
 
   @Column({ default: 0 })
