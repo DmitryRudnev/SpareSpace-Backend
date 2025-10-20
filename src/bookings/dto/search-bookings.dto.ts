@@ -1,14 +1,15 @@
 import { IsInt, IsIn, IsOptional, Min, IsPositive } from 'class-validator';
+import { BookingStatus } from '../../common/enums';
 
 export class SearchBookingsDto {
   @IsInt()
   @IsOptional()
   user_id?: number;
 
-  @IsIn(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'])
+  @IsEnum(BookingStatus)
   @IsOptional()
-  status?: string;
-
+  status?: BookingStatus;
+  
   @IsInt()
   @IsOptional()
   @Min(1)

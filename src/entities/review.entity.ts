@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
-import { Listing } from './listings.entity';
+import { Listing } from './listing.entity';
 
 @Entity('reviews')
 export class Review {
@@ -9,22 +9,22 @@ export class Review {
 
   @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'listing_id' })
-  listing_id: Listing;
+  listing: Listing;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'from_user_id' })
-  from_user_id: User;
+  from_user: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'to_user_id' })
-  to_user_id: User;
+  to_user: User;
 
-  @Column({ type: 'int', check: "rating >= 1 AND rating <= 5" })
+  @Column({ type: 'int' })
   rating: number;
 
   @Column({ type: 'text', nullable: true })
   text: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 }

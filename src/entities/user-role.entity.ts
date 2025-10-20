@@ -1,21 +1,19 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Entity('user_roles')
 export class UserRole {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  user_id: number;
-
-  @Column({ type: 'enum', enum: ['RENTER', 'LANDLORD', 'ADMIN'] })
-  role: string;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  assigned_at: Date;
-
-  @ManyToOne(() => User, user => user.userRoles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, user => user.user_roles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @Column({ type: 'enum', enum: UserRoleType, enumName: 'user_role_type' })
+  role: UserRoleType;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  assigned_at: Date;
 }

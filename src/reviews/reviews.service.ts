@@ -15,70 +15,79 @@ export class ReviewsService {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  private async validateUser(userId: number) {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) throw new UnauthorizedException('User not found');
-    return user;
-  }
-
-  async create(dto: CreateReviewDto, userId: number) {
-    const user = await this.validateUser(userId);
+  private async validateBookingForReview(bookingId: number, userId: number) {
     const booking = await this.bookingRepository.findOne({
-      where: { id: dto.booking_id },
-      relations: ['listing_id', 'renter_id', 'listing_id.user_id'],
+      where: { id: bookingId },
+      relations: ['listing', 'renter', 'listing.user'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     if (booking.status !== 'COMPLETED') throw new BadRequestException('Only completed bookings can be reviewed');
 
-    const isRenter = booking.renter_id.id === userId;
-    const isLandlord = booking.listing_id.user_id.id === userId;
+    const isRenter = booking.renter.id === userId;
+    const isLandlord = booking.listing.user.id === userId;
     if (!isRenter && !isLandlord) throw new UnauthorizedException('Not authorized to review this booking');
 
+    return booking;
+  }
+
+  private async validateNoExistingReview(booking: Booking, userId: number) {
+    const toUserId = booking.renter.id === userId ? booking.listing.user.id : booking.renter.id;
+    
     const existingReview = await this.reviewRepository.findOne({
       where: {
-        listing_id: { id: booking.listing_id.id },
-        from_user_id: { id: userId },
-        to_user_id: { id: isRenter ? booking.listing_id.user_id.id : booking.renter_id.id },
+        listing: { id: booking.listing.id },
+        from_user: { id: userId },
+        to_user: { id: toUserId },
       },
     });
     if (existingReview) throw new ConflictException('Review already exists for this booking');
+  }
 
-    const review = this.reviewRepository.create({
-      listing_id: booking.listing_id,
-      from_user_id: user,
-      to_user_id: { id: isRenter ? booking.listing_id.user_id.id : booking.renter_id.id },
+  private async createReviewEntity(dto: CreateReviewDto, booking: Booking, userId: number) {
+    const toUserId = booking.renter.id === userId ? booking.listing.user.id : booking.renter.id;
+    
+    return this.reviewRepository.create({
+      listing: booking.listing,
+      from_user: { id: userId },
+      to_user: { id: toUserId },
       rating: dto.rating,
       text: dto.text,
     });
+  }
 
-    const savedReview = await this.reviewRepository.save(review);
-    // Триггер обновит users.rating для to_user_id
-    const toUser = await this.userRepository.findOneBy({ id: review.to_user_id.id });
-    savedReview.to_user = toUser; // Для возврата с rating
-    return savedReview;
+  private buildSearchQuery(searchDto: SearchReviewsDto) {
+    const query = this.reviewRepository.createQueryBuilder('review')
+      .leftJoinAndSelect('review.from_user', 'fromUser')
+      .leftJoinAndSelect('review.to_user', 'toUser')
+      .leftJoinAndSelect('review.listing', 'listing');
+
+    if (searchDto.to_user_id) query.andWhere('review.to_user.id = :toUserId', { toUserId: searchDto.to_user_id });
+    if (searchDto.listing_id) query.andWhere('review.listing.id = :listingId', { listingId: searchDto.listing_id });
+
+    if (searchDto.limit) query.limit(searchDto.limit);
+    if (searchDto.offset) query.offset(searchDto.offset);
+
+    return query;
+  }
+
+  async create(dto: CreateReviewDto, userId: number) {
+    const booking = await this.validateBookingForReview(dto.booking_id, userId);
+    await this.validateNoExistingReview(booking, userId);
+    
+    const review = await this.createReviewEntity(dto, booking, userId);
+    return this.reviewRepository.save(review);
   }
 
   async findAll(searchDto: SearchReviewsDto) {
-    const query = this.reviewRepository.createQueryBuilder('review')
-      .leftJoinAndSelect('review.from_user_id', 'fromUser')
-      .leftJoinAndSelect('review.to_user_id', 'toUser')
-      .leftJoinAndSelect('review.listing_id', 'listing');
-
-    if (searchDto.to_user_id) query.andWhere('review.to_user_id.id = :toUserId', { toUserId: searchDto.to_user_id });
-    if (searchDto.listing_id) query.andWhere('review.listing_id.id = :listingId', { listingId: searchDto.listing_id });
-
-    const [reviews, total] = await query
-      .limit(searchDto.limit)
-      .offset(searchDto.offset)
-      .getManyAndCount();
-
+    const query = this.buildSearchQuery(searchDto);
+    const [reviews, total] = await query.getManyAndCount();
     return { reviews, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 
   async findOne(id: number) {
     const review = await this.reviewRepository.findOne({
       where: { id },
-      relations: ['from_user_id', 'to_user_id', 'listing_id'],
+      relations: ['from_user', 'to_user', 'listing'],
     });
     if (!review) throw new NotFoundException('Review not found');
     return review;

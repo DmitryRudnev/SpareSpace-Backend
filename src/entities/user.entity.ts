@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { UserRole } from './user-role.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -18,9 +17,6 @@ export class User {
   @Column()
   full_name: string;
 
-  @OneToMany(() => UserRole, userRole => userRole.user)
-  userRoles: UserRole[];
-
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
   rating: number;
 
@@ -30,9 +26,9 @@ export class User {
   @Column({ default: false })
   verified: boolean;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 }

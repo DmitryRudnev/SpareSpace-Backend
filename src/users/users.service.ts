@@ -13,51 +13,61 @@ export class UserService {
     @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,
   ) {}
 
-  async findById(id: number): Promise<User> {
+  async findById(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['userRoles'],
+      select: ['id', 'full_name', 'rating', 'created_at', 'verified', 'created_at']
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async findByEmail(email: string): Promise<User> {
+  async findPrivateProfile(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['user_roles'],
+      select: ['id', 'email', 'phone', 'full_name', 'rating', 'two_fa_enabled', 'verified', 'created_at', 'updated_at'] // все приватные поля
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async findByEmail(email: string) {
     return this.userRepository.findOneBy({ email });
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<User> {
-    const user = await this.findById(id);
+  async update(id: number, dto: UpdateUserDto) {
+    const user = await this.findPrivateProfile(id);
     Object.assign(user, dto);
     return this.userRepository.save(user);
   }
 
-  async getUserRoles(id: number): Promise<string[]> {
+  async getUserRoles(id: number) {
     const roles = await this.userRoleRepository.find({
-      where: { user_id: id },
+      where: { user: { id } },
       select: ['role'],
     });
     return roles.map(r => r.role);
   }
 
-  async addRole(id: number, role: UserRoleType): Promise<void> {
-    const existing = await this.userRoleRepository.findOneBy({ user_id: id, role });
+  async addRole(id: number, role: UserRoleType) {
+    const existing = await this.userRoleRepository.findOneBy({ user: { id }, role });
     if (existing) return;
 
-    const userRole = this.userRoleRepository.create({ user_id: id, role });
+    const userRole = this.userRoleRepository.create({ user: { id }, role });
     await this.userRoleRepository.save(userRole);
   }
 
-  async removeRole(id: number, role: UserRoleType): Promise<void> {
-    await this.userRoleRepository.delete({ user_id: id, role });
+  async removeRole(id: number, role: UserRoleType) {
+    await this.userRoleRepository.delete({ user: { id }, role });
   }
 
-  async getAvgRating(id: number): Promise<number> {
+  async getAvgRating(id: number) {
     const user = await this.findById(id);
     return user.rating || 0;
   }
 
-  async hasRole(userId: number, requiredRole: string): Promise<boolean> {
+  async hasRole(userId: number, requiredRole: string) {
     const roles = await this.getUserRoles(userId);
     return roles.includes(requiredRole);
   }

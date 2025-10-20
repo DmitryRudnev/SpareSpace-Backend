@@ -1,7 +1,7 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Delete, Post } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Param, UseGuards, Delete, Post, UnauthorizedException } from '@nestjs/common';
 import { UserService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -11,11 +11,15 @@ import { UserRoleType } from '../entities/user-role.entity';
 export class UsersController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string, @User('userId') currentUserId: number) {
-    if (+id !== currentUserId) throw new UnauthorizedException('Access denied');
+  findOne(@Param('id') id: string) {
     return this.userService.findById(+id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile/me')
+  getMyProfile(@User('userId') currentUserId: number) {
+    return this.userService.findPrivateProfile(currentUserId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -46,10 +50,8 @@ export class UsersController {
     return this.userService.removeRole(+id, role as UserRoleType);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get(':id/rating')
-  getRating(@Param('id') id: string, @User('userId') currentUserId: number) {
-    if (+id !== currentUserId) throw new UnauthorizedException('Access denied');
+  getRating(@Param('id') id: string) {
     return this.userService.getAvgRating(+id);
   }
 }

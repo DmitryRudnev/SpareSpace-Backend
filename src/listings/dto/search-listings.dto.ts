@@ -1,9 +1,14 @@
 import { IsIn, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
+import { ListingType, CurrencyType, ListingPeriodType } from '../../common/enums';
 
 export class SearchListingsDto {
-  @IsIn(['garage', 'storage', 'parking'])
+  @IsEnum(ListingType)
   @IsOptional()
-  type: string;
+  type: ListingType;
+
+  @IsEnum(CurrencyType)
+  @IsOptional()
+  currency: CurrencyType;
 
   @IsNumber()
   @Min(0)
@@ -14,6 +19,10 @@ export class SearchListingsDto {
   @Min(0)
   @IsOptional()
   maxPrice: number;
+
+  @IsEnum(ListingPeriodType)
+  @IsOptional()
+  price_period: ListingPeriodType;
 
   @IsNumber()
   @Min(-90)

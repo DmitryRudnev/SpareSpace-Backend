@@ -1,5 +1,6 @@
 import { IsString, IsIn, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ListingType, CurrencyType, ListingPeriodType } from '../../common/enums';
 
 class AvailabilityPeriodDto {
   @IsString()
@@ -10,8 +11,8 @@ class AvailabilityPeriodDto {
 }
 
 export class CreateListingDto {
-  @IsIn(['garage', 'storage', 'parking'])
-  type: string;
+  @IsEnum(ListingType)
+  type: ListingType;
 
   @IsString()
   title: string;
@@ -24,9 +25,12 @@ export class CreateListingDto {
   @Min(0)
   price: number;
 
+  @IsEnum(ListingPeriodType)
+  price_period: ListingPeriodType;
+
   @IsOptional()
-  @IsIn(['RUB', 'USD', 'USDT', 'ETH', 'TRX'])
-  currency?: string;
+  @IsEnum(CurrencyType)
+  currency?: CurrencyType;
 
   @IsNumber()
   @IsOptional()

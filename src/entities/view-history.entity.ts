@@ -1,18 +1,20 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
-import { Listing } from './listings.entity';
+import { Listing } from './listing.entity';
 
 @Entity('view_history')
 export class ViewHistory {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, { nullable: true })
-  user_id: User;
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
-  @ManyToOne(() => Listing)
-  listing_id: Listing;
+  @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'listing_id' })
+  listing: Listing;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamptz' })
   viewed_at: Date;
 }

@@ -1,6 +1,7 @@
 import { IsIn } from 'class-validator';
+import { BookingStatus } from '../../common/enums';
 
 export class ChangeStatusDto {
-  @IsIn(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'])
-  status: string;
+  @IsEnum(BookingStatus)
+  status: BookingStatus;
 }

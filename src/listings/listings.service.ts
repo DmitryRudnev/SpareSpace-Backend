@@ -43,20 +43,53 @@ export class ListingsService {
 
   private async validateListingOwnership(id: number, userId: number) {
     const listing = await this.listingRepository.findOne({
-      where: { id, user_id: { id: userId } },
+      where: { id, user: { id: userId } },
+      relations: ['user']
     });
     if (!listing) throw new UnauthorizedException('Not authorized to modify this listing');
     return listing;
   }
 
+  private buildSearchQuery(searchDto: SearchListingsDto) {
+    let query = this.listingRepository.createQueryBuilder('listing')
+      .where('listing.status = :status', { status: 'ACTIVE' });
+
+    if (searchDto.type) query.andWhere('listing.type = :type', { type: searchDto.type });
+    if (searchDto.currency) query.andWhere('listing.currency = :currency', { currency: searchDto.currency });
+    if (searchDto.minPrice) query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
+    if (searchDto.maxPrice) query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
+    if (searchDto.price_period) query.andWhere('listing.price_period = :price_period', { price_period: searchDto.price_period });
+    if (searchDto.latitude && searchDto.longitude && searchDto.radius) {
+      query.andWhere(
+        "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
+        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius }
+      );
+    }
+    if (searchDto.amenities) {
+      Object.keys(searchDto.amenities).forEach(key => {
+        query.andWhere(`listing.amenities ->> '${key}' = :value`, { value: searchDto.amenities[key] });
+      });
+    }
+
+    query.orderBy('listing.created_at', 'DESC');
+
+    if (searchDto.limit) query.limit(searchDto.limit);
+    if (searchDto.offset) query.offset(searchDto.offset);
+
+    return query;
+  }
+
+
   async create(dto: CreateListingDto, userId: number) {
     const user = await this.validateUser(userId);
     await this.validateLandlordRole(user);
     const listing = this.listingRepository.create({
+      user: user,
       type: dto.type,
       title: dto.title,
       description: dto.description,
       price: dto.price,
+      price_period: dto.price_period,
       currency: dto.currency || 'RUB',
       location: this.createLocationPoint(dto),
       address: dto.address,
@@ -64,36 +97,8 @@ export class ListingsService {
       photos_json: dto.photos_json,
       amenities: dto.amenities ? JSON.stringify(dto.amenities) : null,
       availability: this.parseAvailability(dto.availability),
-      user_id: user,
     });
     return this.listingRepository.save(listing);
-  }
-
-  private buildSearchQuery(searchDto: SearchListingsDto) {
-    let query = this.listingRepository.createQueryBuilder('listing').where('listing.status = :status', { status: 'ACTIVE' });
-
-    if (searchDto.type) query.andWhere('listing.type = :type', { type: searchDto.type });
-    if (searchDto.minPrice) query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
-    if (searchDto.maxPrice) query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
-    if (searchDto.latitude && searchDto.longitude && searchDto.radius) {
-      query.andWhere(
-        "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
-        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius / 111000 }, // approx meters to degrees
-      );
-    }
-    if (searchDto.amenities) {
-      const amenitiesKeys = Object.keys(searchDto.amenities);
-      amenitiesKeys.forEach(key => {
-        query.andWhere(`listing.amenities ? '${key}'`, {});
-      });
-    }
-
-    query.orderBy('listing.price', 'ASC');
-
-    if (searchDto.limit) query.limit(searchDto.limit);
-    if (searchDto.offset) query.offset(searchDto.offset);
-
-    return query;
   }
 
   async findAll(searchDto: SearchListingsDto) {
@@ -110,7 +115,7 @@ export class ListingsService {
 
     if (userId) {
       await this.viewHistoryRepository.insert({
-        user_id: { id: userId },
+        user: { id: userId },
         listing_id: listing,
       });
     } else {
@@ -118,7 +123,6 @@ export class ListingsService {
         listing_id: listing,
       });
     }
-
     return listing;
   }
 
@@ -128,6 +132,7 @@ export class ListingsService {
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.price !== undefined) listing.price = dto.price;
+    if (dto.price_period !== undefined) listing.price_period = dto.price_period;
     if (dto.currency !== undefined) listing.currency = dto.currency;
     if (dto.latitude !== undefined || dto.longitude !== undefined) {
       listing.location = this.createLocationPoint(dto);

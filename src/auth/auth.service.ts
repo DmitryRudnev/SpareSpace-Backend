@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DeleteResult } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto'; // Добавлено
+import * as crypto from 'crypto';
 import { User } from '../entities/user.entity';
 import { UserToken } from '../entities/user-token.entity';
 import { RegisterDto } from './dto/register.dto';
@@ -72,6 +72,14 @@ export class AuthService {
     });
   }
 
+  private async validateUser(dto: LoginDto) {
+    const user = await this.userRepository.findOneBy({ email: dto.email });
+    if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return user;
+  }
+
   async register(dto: RegisterDto) {
     await this.checkEmailExists(dto.email);
     await this.checkPhoneExists(dto.phone);
@@ -80,14 +88,6 @@ export class AuthService {
     const { accessToken, refreshToken, refreshTokenHash } = await this.generateTokens(user);
     await this.saveTokens(user.id, refreshTokenHash);
     return { accessToken, refreshToken };
-  }
-
-  private async validateUser(dto: LoginDto) {
-    const user = await this.userRepository.findOneBy({ email: dto.email });
-    if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    return user;
   }
 
   async login(dto: LoginDto) {
@@ -99,14 +99,22 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const tokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
-    const token = await this.tokenRepository.findOneBy({ refresh_token_hash: tokenHash });
-    if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');
-    
+    const token = await this.tokenRepository.findOne({ where: { refresh_token_hash: refreshTokenHash }, relations: ['user'] });
+
+    if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');    
     await this.tokenRepository.update(token.id, { revoked: true });
 
-    const user = await this.userRepository.findOneBy({ id: token.user_id });
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenHash: newHash } = await this.generateTokens(user);
-    await this.saveTokens(user.id, newHash);
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    if (!token.user) throw new UnauthorizedException('User not found');
+    const { accessToken, refreshToken, refreshTokenHash: newHash } = await this.generateTokens(token.user);
+    await this.saveTokens(token.user.id, newHash);
+    return { accessToken, refreshToken };
+  }
+
+  async logout(refreshToken: string) {
+    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
+    await this.tokenRepository.update(
+      { refresh_token_hash: refreshTokenHash },
+      { revoked: true }
+    );
   }
 }

@@ -39,7 +39,7 @@ import { UsersModule } from './users/users.module';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [User, UserToken, Listing, ViewHistory, Booking, Review],
+        entities: [User, UserToken, Listing, ViewHistory, Booking, Review, UserRole],
         synchronize: false,
       }),
       inject: [ConfigService],

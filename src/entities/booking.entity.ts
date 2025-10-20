@@ -1,6 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from './user.entity';
-import { Listing } from './listings.entity';
+import { Listing } from './listing.entity';
+import { CurrencyType } from '../common/enums/currency-type.enum';
+import { BookingStatus } from '../common/enums/booking-status.enum';
 
 @Entity('bookings')
 export class Booking {
@@ -9,11 +11,11 @@ export class Booking {
 
   @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'listing_id' })
-  listing_id: Listing;
+  listing: Listing;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'renter_id' })
-  renter_id: User;
+  renter: User;
 
   @Column({ type: 'tsrange' })
   period: string;
@@ -21,15 +23,15 @@ export class Booking {
   @Column({ type: 'decimal', precision: 26, scale: 16 })
   price_total: number;
 
-  @Column({ type: 'enum', enum: ['RUB', 'USD', 'USDT', 'ETH', 'TRX'], default: 'RUB' })
-  currency: string;
+  @Column({ type: 'enum', enum: CurrencyType, enumName: 'currency_type', default: CurrencyType.RUB })
+  currency: CurrencyType;
 
-  @Column({ type: 'enum', enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'], default: 'PENDING' })
-  status: string;
+  @Column({ type: 'enum', enum: BookingStatus, enumName: 'booking_status', default: BookingStatus.PENDING })
+  status: BookingStatus;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 }

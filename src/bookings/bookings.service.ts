@@ -34,12 +34,21 @@ export class BookingsService {
     if (!hasLandlord) throw new UnauthorizedException('Not authorized to modify this booking');
   }
 
-  private calculateDuration(start: Date, end: Date): number {
-    return (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  }
-
-  private calculatePriceTotal(listingPrice: number, duration: number): number {
-    return listingPrice * duration;
+  private calculateDuration(start: Date, end: Date, pricePeriod: string): number {
+    const durationMs = end.getTime() - start.getTime();
+    
+    switch (pricePeriod) {
+      case 'HOUR':
+        return durationMs / (1000 * 60 * 60);
+      case 'DAY':
+        return durationMs / (1000 * 60 * 60 * 24);
+      case 'WEEK':
+        return durationMs / (1000 * 60 * 60 * 24 * 7);
+      case 'MONTH':
+        return durationMs / (1000 * 60 * 60 * 24 * 30); // приблизительно
+      default:
+        throw new BadRequestException('Invalid price period');
+    }
   }
 
   private parseTsRange(start: string, end: string): string {
@@ -59,12 +68,12 @@ export class BookingsService {
     const endDate = new Date(dto.end_date);
     if (startDate >= endDate) throw new BadRequestException('Invalid period');
 
-    const duration = this.calculateDuration(startDate, endDate);
-    const priceTotal = this.calculatePriceTotal(listing.price, duration);
+    const duration = this.calculateDuration(startDate, endDate, listing.price_period);
+    const priceTotal = listing.price * duration;
 
     const booking = this.bookingRepository.create({
-      listing_id: listing,
-      renter_id: user,
+      listing: listing,
+      renter: user,
       period: this.parseTsRange(dto.start_date, dto.end_date),
       price_total: priceTotal,
       currency: listing.currency,
@@ -81,9 +90,9 @@ export class BookingsService {
 
   async findAll(searchDto: SearchBookingsDto, userId: number) {
     const query = this.bookingRepository.createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.listing_id', 'listing')
-      .leftJoinAndSelect('booking.renter_id', 'renter')
-      .where('(booking.renter_id.id = :userId OR listing.user_id.id = :userId)', { userId });
+      .leftJoinAndSelect('booking.listing', 'listing')
+      .leftJoinAndSelect('booking.renter', 'renter')
+      .where('(booking.renter.id = :userId OR listing.user.id = :userId)', { userId });
 
     if (searchDto.status) query.andWhere('booking.status = :status', { status: searchDto.status });
 
@@ -98,7 +107,7 @@ export class BookingsService {
   async findOne(id: number) {
     const booking = await this.bookingRepository.findOne({
       where: { id },
-      relations: ['listing_id', 'renter_id', 'listing_id.user_id'],
+      relations: ['listing', 'renter', 'listing.user'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
@@ -106,7 +115,7 @@ export class BookingsService {
 
   async update(id: number, dto: UpdateBookingDto, userId: number) {
     const booking = await this.findOne(id);
-    if (booking.renter_id.id !== userId) throw new UnauthorizedException('Only renter can update this booking');
+    if (booking.renter.id !== userId) throw new UnauthorizedException('Only renter can update this booking');
 
     const startDate = dto.start_date ? new Date(dto.start_date) : undefined;
     const endDate = dto.end_date ? new Date(dto.end_date) : undefined;
@@ -114,8 +123,8 @@ export class BookingsService {
 
     if (startDate && endDate) {
       booking.period = this.parseTsRange(dto.start_date, dto.end_date);
-      const duration = this.calculateDuration(startDate, endDate);
-      booking.price_total = this.calculatePriceTotal(booking.listing_id.price, duration);
+      const duration = this.calculateDuration(startDate, endDate, booking.listing.price_period);
+      booking.price_total = booking.listing.price * duration;
     }
 
     Object.assign(booking, dto);
@@ -134,7 +143,7 @@ export class BookingsService {
 
   async remove(id: number, userId: number) {
     const booking = await this.findOne(id);
-    if (booking.renter_id.id !== userId && booking.listing_id.user_id.id !== userId) {
+    if (booking.renter.id !== userId && booking.listing.user.id !== userId) {
       throw new UnauthorizedException('Not authorized to cancel this booking');
     }
 
