@@ -116,11 +116,11 @@ export class ListingsService {
     if (userId) {
       await this.viewHistoryRepository.insert({
         user: { id: userId },
-        listing_id: listing,
+        listing: listing,
       });
     } else {
       await this.viewHistoryRepository.insert({
-        listing_id: listing,
+        listing: listing,
       });
     }
     return listing;

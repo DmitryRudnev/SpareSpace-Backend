@@ -26,7 +26,7 @@ export class Listing {
   @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
 
-  @Column({ type: 'enum', enum: ListingPeriodType, enumName: 'listing_period_type' })
+  @Column({ type: 'enum', enum: ListingPeriodType, enumName: 'listing_period_type', default: ListingPeriodType.DAY })
   price_period: ListingPeriodType;
 
   @Column({ type: 'enum', enum: CurrencyType, enumName: 'currency_type', default: CurrencyType.RUB })

@@ -1,6 +1,10 @@
 import { IsString, IsIn, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ListingType, CurrencyType, ListingPeriodType } from '../../common/enums';
+import { ListingType } from '../../common/enums/listing-type.enum';
+import { CurrencyType } from '../../common/enums/currency-type.enum';
+import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
+
+
 
 class AvailabilityPeriodDto {
   @IsString()

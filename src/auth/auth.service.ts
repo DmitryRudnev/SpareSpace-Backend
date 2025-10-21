@@ -99,7 +99,7 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const tokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
-    const token = await this.tokenRepository.findOne({ where: { refresh_token_hash: refreshTokenHash }, relations: ['user'] });
+    const token = await this.tokenRepository.findOne({ where: { refresh_token_hash: tokenHash }, relations: ['user'] });
 
     if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');    
     await this.tokenRepository.update(token.id, { revoked: true });

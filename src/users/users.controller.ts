@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { UserRoleType } from '../entities/user-role.entity';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Controller('users')
 export class UsersController {

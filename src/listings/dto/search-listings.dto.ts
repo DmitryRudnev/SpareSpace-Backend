@@ -1,5 +1,7 @@
 import { IsIn, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
-import { ListingType, CurrencyType, ListingPeriodType } from '../../common/enums';
+import { ListingType } from '../../common/enums/listing-type.enum';
+import { CurrencyType } from '../../common/enums/currency-type.enum';
+import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
 
 export class SearchListingsDto {
   @IsEnum(ListingType)

@@ -1,5 +1,5 @@
 import { IsIn } from 'class-validator';
-import { BookingStatus } from '../../common/enums';
+import { BookingStatus } from '../../common/enums/booking-status.enum';
 
 export class ChangeStatusDto {
   @IsEnum(BookingStatus)
