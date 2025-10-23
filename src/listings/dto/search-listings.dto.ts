@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
 import { ListingType } from '../../common/enums/listing-type.enum';
 import { CurrencyType } from '../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
@@ -50,10 +50,10 @@ export class SearchListingsDto {
   @IsNumber()
   @Min(1)
   @IsOptional()
-  limit: number;
+  limit: number = 10;
 
   @IsNumber()
   @Min(0)
   @IsOptional()
-  offset: number;
+  offset: number = 0;
 }

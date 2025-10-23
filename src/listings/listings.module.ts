@@ -7,6 +7,7 @@ import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
 import { ViewHistory } from '../entities/view-history.entity';
 import { UsersModule } from '../users/users.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [

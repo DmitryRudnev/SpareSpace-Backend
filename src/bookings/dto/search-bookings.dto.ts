@@ -1,4 +1,4 @@
-import { IsInt, IsIn, IsOptional, Min, IsPositive } from 'class-validator';
+import { IsInt, IsEnum, IsOptional, Min, IsPositive } from 'class-validator';
 import { BookingStatus } from '../../common/enums/booking-status.enum';
 
 export class SearchBookingsDto {

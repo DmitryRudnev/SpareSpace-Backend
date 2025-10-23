@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
-import { UserRoleType } from '../entities/user-role.entity';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -25,7 +25,6 @@ export class UserService {
   async findPrivateProfile(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['user_roles'],
       select: ['id', 'email', 'phone', 'full_name', 'rating', 'two_fa_enabled', 'verified', 'created_at', 'updated_at'] // все приватные поля
     });
     if (!user) throw new NotFoundException('User not found');
@@ -51,7 +50,7 @@ export class UserService {
   }
 
   async addRole(id: number, role: UserRoleType) {
-    const existing = await this.userRoleRepository.findOneBy({ user: { id }, role });
+    const existing = await this.userRoleRepository.findOneBy({ user: { id }, role  });
     if (existing) return;
 
     const userRole = this.userRoleRepository.create({ user: { id }, role });
@@ -67,7 +66,7 @@ export class UserService {
     return user.rating || 0;
   }
 
-  async hasRole(userId: number, requiredRole: string) {
+  async hasRole(userId: number, requiredRole: UserRoleType) {
     const roles = await this.getUserRoles(userId);
     return roles.includes(requiredRole);
   }

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeleteResult } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -10,11 +10,12 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../users/users.service';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Injectable()
 export class AuthService {
   private readonly BCRYPT_SALT_ROUNDS = 10;
-  private readonly DEFAULT_USER_ROLE = 'RENTER';
+  private readonly DEFAULT_USER_ROLE = UserRoleType.RENTER;
 
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
@@ -65,11 +66,20 @@ export class AuthService {
 
   private async saveTokens(userId: number, refreshTokenHash: string) {
     await this.tokenRepository.save({
-      user_id: userId,
+      user: { id: userId },
       refresh_token_hash: refreshTokenHash,
       expiry: new Date(Date.now() + this.getRefreshTokenExpiryMs()),
       revoked: false,
     });
+  }
+
+  private async findValidToken(tokens: UserToken[], refreshToken: string) {
+    for (const token of tokens) {
+      if (await bcrypt.compare(refreshToken, token.refresh_token_hash)) {
+        return token;
+      }
+    }
+    return null;
   }
 
   private async validateUser(dto: LoginDto) {
@@ -98,23 +108,28 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const tokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
-    const token = await this.tokenRepository.findOne({ where: { refresh_token_hash: tokenHash }, relations: ['user'] });
+    const tokens = await this.tokenRepository.find({
+      where: { revoked: false, expiry: MoreThan(new Date()) },
+      relations: ['user']
+    });
+    const validToken = await this.findValidToken(tokens, refreshToken);
 
-    if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');    
-    await this.tokenRepository.update(token.id, { revoked: true });
+    if (!validToken || validToken.expiry < new Date() || validToken.revoked) throw new UnauthorizedException('Invalid or expired token');
+    await this.tokenRepository.update(validToken.id, { revoked: true });
 
-    if (!token.user) throw new UnauthorizedException('User not found');
-    const { accessToken, refreshToken, refreshTokenHash: newHash } = await this.generateTokens(token.user);
-    await this.saveTokens(token.user.id, newHash);
-    return { accessToken, refreshToken };
+    if (!validToken.user) throw new UnauthorizedException('User not found');
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenHash: newHash } = await this.generateTokens(validToken.user);
+    await this.saveTokens(validToken.user.id, newHash);
+    return { newAccessToken, newRefreshToken };
   }
 
   async logout(refreshToken: string) {
-    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
-    await this.tokenRepository.update(
-      { refresh_token_hash: refreshTokenHash },
-      { revoked: true }
-    );
+    const tokens = await this.tokenRepository.find({
+      where: { revoked: false }
+    });
+    const validToken = await this.findValidToken(tokens, refreshToken);
+    if (validToken) {
+      await this.tokenRepository.update(validToken.id, { revoked: true });
+    }
   }
 }

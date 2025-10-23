@@ -2,12 +2,15 @@ import { Injectable, NotFoundException, UnauthorizedException, BadRequestExcepti
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
-import { Listing } from '../entities/listings.entity';
+import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { SearchBookingsDto } from './dto/search-bookings.dto';
 import { UserService } from '../users/users.service';
+import { BookingStatus } from '../common/enums/booking-status.enum';
+import { ListingStatus } from '../common/enums/listing-status.enum';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Injectable()
 export class BookingsService {
@@ -25,12 +28,12 @@ export class BookingsService {
   }
 
   private async validateRenterRole(user: User) {
-    const hasRenter = await this.userService.hasRole(user.id, 'RENTER');
+    const hasRenter = await this.userService.hasRole(user.id, UserRoleType.RENTER);
     if (!hasRenter) throw new UnauthorizedException('Only renters can create bookings');
   }
 
   private async validateLandlordOwnership(booking: Booking, userId: number) {
-    const hasLandlord = await this.userService.hasRole(userId, 'LANDLORD');
+    const hasLandlord = await this.userService.hasRole(userId, UserRoleType.LANDLORD);
     if (!hasLandlord) throw new UnauthorizedException('Not authorized to modify this booking');
   }
 
@@ -62,7 +65,7 @@ export class BookingsService {
     await this.validateRenterRole(user);
 
     const listing = await this.listingRepository.findOneBy({ id: dto.listing_id });
-    if (!listing || listing.status !== 'ACTIVE') throw new BadRequestException('Invalid or inactive listing');
+    if (!listing || listing.status !== ListingStatus.ACTIVE) throw new BadRequestException('Invalid or inactive listing');
 
     const startDate = new Date(dto.start_date);
     const endDate = new Date(dto.end_date);
@@ -77,7 +80,7 @@ export class BookingsService {
       period: this.parseTsRange(dto.start_date, dto.end_date),
       price_total: priceTotal,
       currency: listing.currency,
-      status: 'PENDING',
+      status: BookingStatus.PENDING,
     });
 
     try {
@@ -117,11 +120,12 @@ export class BookingsService {
     const booking = await this.findOne(id);
     if (booking.renter.id !== userId) throw new UnauthorizedException('Only renter can update this booking');
 
-    const startDate = dto.start_date ? new Date(dto.start_date) : undefined;
-    const endDate = dto.end_date ? new Date(dto.end_date) : undefined;
-    if (startDate && endDate && startDate >= endDate) throw new BadRequestException('Invalid period');
 
-    if (startDate && endDate) {
+    if (dto.start_date && dto.end_date) {
+      const startDate = new Date(dto.start_date);
+      const endDate = new Date(dto.end_date);
+      if (startDate && endDate && startDate >= endDate) throw new BadRequestException('Invalid period');
+      
       booking.period = this.parseTsRange(dto.start_date, dto.end_date);
       const duration = this.calculateDuration(startDate, endDate, booking.listing.price_period);
       booking.price_total = booking.listing.price * duration;
@@ -131,11 +135,11 @@ export class BookingsService {
     return this.bookingRepository.save(booking);
   }
 
-  async changeStatus(id: number, newStatus: string, userId: number) {
+  async changeStatus(id: number, newStatus: BookingStatus, userId: number) {
     const booking = await this.findOne(id);
     await this.validateLandlordOwnership(booking, userId);
 
-    if (booking.status === 'COMPLETED') throw new BadRequestException('Cannot change completed booking');
+    if (booking.status === BookingStatus.COMPLETED) throw new BadRequestException('Cannot change completed booking');
 
     booking.status = newStatus;
     return this.bookingRepository.save(booking);
@@ -147,7 +151,7 @@ export class BookingsService {
       throw new UnauthorizedException('Not authorized to cancel this booking');
     }
 
-    booking.status = 'CANCELLED';
+    booking.status = BookingStatus.CANCELLED;
     return this.bookingRepository.save(booking);
   }
 }

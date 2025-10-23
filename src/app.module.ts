@@ -6,7 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from './auth/auth.module';
 import { User } from './entities/user.entity';
 import { UserToken } from './entities/user-token.entity';
-import { Listing } from './entities/listings.entity';
+import { Listing } from './entities/listing.entity';
 import { ViewHistory } from './entities/view-history.entity';
 import { Booking } from './entities/booking.entity';
 import { Review } from './entities/review.entity';

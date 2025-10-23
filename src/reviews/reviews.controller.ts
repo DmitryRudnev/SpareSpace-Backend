@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Param, Query, UseGuards } from '@nestjs/co
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { SearchReviewsDto } from './dto/search-reviews.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 
 @Controller('reviews')

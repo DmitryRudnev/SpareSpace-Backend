@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
-import { Listing } from '../entities/listings.entity';
+import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
 import { ViewHistory } from '../entities/view-history.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
 import { UserService } from '../users/users.service';
+import { ListingStatus } from '../common/enums/listing-status.enum';
+import { UserRoleType } from '../common/enums/user-role-type.enum';
+import { CurrencyType } from '../common/enums/currency-type.enum';
 
 @Injectable()
 export class ListingsService {
@@ -25,19 +28,17 @@ export class ListingsService {
   }
 
   private async validateLandlordRole(user: User) {
-    const hasLandlord = await this.userService.hasRole(user.id, 'LANDLORD');
+    const hasLandlord = await this.userService.hasRole(user.id, UserRoleType.LANDLORD);
     if (!hasLandlord) throw new UnauthorizedException('Only landlords can create listings');
   }
 
   private createLocationPoint(dto: CreateListingDto | UpdateListingDto) {
-    if (dto.latitude && dto.longitude) {
-      return `ST_SetSRID(ST_MakePoint(${dto.longitude}, ${dto.latitude}), 4326)::geometry`;
-    }
+    if (dto.latitude && dto.longitude) return `POINT(${dto.longitude} ${dto.latitude})`;
     return null;
   }
 
   private parseAvailability(availability: any[]) {
-    if (!availability || !Array.isArray(availability)) return '{}';
+    if (!availability || !Array.isArray(availability)) return [];
     return availability.map(p => `tsrange('${p.start}', '${p.end}', '[]')`);
   }
 
@@ -79,37 +80,48 @@ export class ListingsService {
     return query;
   }
 
-
   async create(dto: CreateListingDto, userId: number) {
     const user = await this.validateUser(userId);
-    await this.validateLandlordRole(user);
-    const listing = this.listingRepository.create({
+
+    const dtoDescription = dto.description ? dto.description : null;
+    const dtoSize = dto.size ? dto.size : null;
+    const dtoPhotos = dto.photos_json ? dto.photos_json : null;
+
+    const listingData: any = {
       user: user,
       type: dto.type,
       title: dto.title,
-      description: dto.description,
+      description: dtoDescription,
       price: dto.price,
       price_period: dto.price_period,
-      currency: dto.currency || 'RUB',
-      location: this.createLocationPoint(dto),
+      currency: dto.currency,
       address: dto.address,
-      size: dto.size,
-      photos_json: dto.photos_json,
-      amenities: dto.amenities ? JSON.stringify(dto.amenities) : null,
+      size: dtoSize,
+      photos_json: dtoPhotos,
       availability: this.parseAvailability(dto.availability),
-    });
-    return this.listingRepository.save(listing);
+    }
+    if (dto.latitude && dto.longitude) {
+      listingData.location = `POINT(${dto.longitude} ${dto.latitude})`;
+    }
+
+    if (dto.amenities) {
+      listingData.amenities = typeof dto.amenities === 'string' ? dto.amenities : JSON.stringify(dto.amenities);
+    }
+
+    const listing = this.listingRepository.create(listingData);
+    await this.userService.addRole(userId, UserRoleType.LANDLORD);
+    return await this.listingRepository.save(listing);
   }
 
   async findAll(searchDto: SearchListingsDto) {
     const [listings, total] = await this.buildSearchQuery(searchDto).getManyAndCount();
-    return { listings, total, limit: searchDto.limit || 10, offset: searchDto.offset || 0 };
+    return { listings, total, limit: searchDto.limit, offset: searchDto.offset};
   }
 
   async findOne(id: number, userId?: number) {
     const listing = await this.listingRepository.findOne({
-      where: { id, status: 'ACTIVE' },
-      relations: ['user_id'],
+      where: { id, status: ListingStatus.ACTIVE },
+      relations: ['user'],
     });
     if (!listing) throw new NotFoundException('Listing not found');
 
@@ -134,9 +146,8 @@ export class ListingsService {
     if (dto.price !== undefined) listing.price = dto.price;
     if (dto.price_period !== undefined) listing.price_period = dto.price_period;
     if (dto.currency !== undefined) listing.currency = dto.currency;
-    if (dto.latitude !== undefined || dto.longitude !== undefined) {
-      listing.location = this.createLocationPoint(dto);
-    }
+    const dtoLocation = this.createLocationPoint(dto);
+    if (dtoLocation) listing.location = dtoLocation;
     if (dto.address !== undefined) listing.address = dto.address;
     if (dto.size !== undefined) listing.size = dto.size;
     if (dto.photos_json !== undefined) listing.photos_json = dto.photos_json;
@@ -147,7 +158,7 @@ export class ListingsService {
 
   async remove(id: number, userId: number) {
     const listing = await this.validateListingOwnership(id, userId);
-    listing.status = 'INACTIVE';
+    listing.status = ListingStatus.INACTIVE;
     return this.listingRepository.save(listing);
   }
 }
