@@ -7,7 +7,7 @@ import { User } from '../entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { SearchBookingsDto } from './dto/search-bookings.dto';
-import { UserService } from '../users/users.service';
+import { UsersService } from '../users/users.service';
 import { BookingStatus } from '../common/enums/booking-status.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
@@ -18,7 +18,7 @@ export class BookingsService {
     @InjectRepository(Booking) private bookingRepository: Repository<Booking>,
     @InjectRepository(Listing) private listingRepository: Repository<Listing>,
     @InjectRepository(User) private userRepository: Repository<User>,
-    private userService: UserService,
+    private userService: UsersService,
   ) {}
 
   private async validateUser(userId: number) {

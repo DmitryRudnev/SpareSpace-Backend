@@ -7,7 +7,7 @@ import { ViewHistory } from '../entities/view-history.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
-import { UserService } from '../users/users.service';
+import { UsersService } from '../users/users.service';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
 import { CurrencyType } from '../common/enums/currency-type.enum';
@@ -18,7 +18,7 @@ export class ListingsService {
     @InjectRepository(Listing) private listingRepository: Repository<Listing>,
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(ViewHistory) private viewHistoryRepository: Repository<ViewHistory>,
-    private userService: UserService,
+    private userService: UsersService,
   ) {}
 
   private async validateUser(userId: number) {

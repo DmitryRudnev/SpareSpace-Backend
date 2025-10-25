@@ -7,7 +7,7 @@ import { UserRoleType } from '../common/enums/user-role-type.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
-export class UserService {
+export class UsersService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,

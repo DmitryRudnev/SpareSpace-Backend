@@ -9,7 +9,7 @@ import { UserToken } from '../entities/user-token.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from '../users/users.service';
+import { UsersService } from '../users/users.service';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class AuthService {
     @InjectRepository(UserToken) private tokenRepository: Repository<UserToken>,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private userService: UserService,
+    private userService: UsersService,
   ) {}
 
   private getRefreshTokenExpiryMs(): number {
@@ -30,7 +30,7 @@ export class AuthService {
     return days * 24 * 60 * 60 * 1000;
   }
 
-  private async checkEmailExists(email: string) {
+  private async checkEmailExists(email: string | undefined) {
     const exists = await this.userRepository.findOneBy({ email });
     if (exists) throw new ConflictException('Email already exists');
   }
@@ -61,7 +61,7 @@ export class AuthService {
       .digest('hex');
   }
 
-  private async generateTokens(userId: User) {
+  private async generateTokens(userId: number) {
     const roles = await this.userService.getUserRoles(userId);
     const payload = { sub: userId, roles };
     const accessToken = this.jwtService.sign(payload, {
@@ -73,7 +73,7 @@ export class AuthService {
   }
 
   private async saveToken(userId: number, refreshToken: string) {
-    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     await this.tokenRepository.save({
       user: { id: userId },
       refresh_token_hash: refreshTokenHash,
@@ -108,7 +108,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const token = await this.tokenRepository.findOne({
       where: { refresh_token_hash: refreshTokenHash },
       relations: ['user']
@@ -119,12 +119,12 @@ export class AuthService {
 
     if (!token.user) throw new UnauthorizedException('User not found');
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(token.user.id);
-    await this.saveToken(validToken.user.id, newRefreshToken);
+    await this.saveToken(token.user.id, newRefreshToken);
     return { newAccessToken, newRefreshToken };
   }
 
   async logout(refreshToken: string) {
-    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const token = await this.tokenRepository.findOne({
       where: { refresh_token_hash: refreshTokenHash },
       relations: ['user']
