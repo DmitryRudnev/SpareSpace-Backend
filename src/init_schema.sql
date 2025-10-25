@@ -19,9 +19,11 @@ CREATE TYPE moderation_action AS ENUM ('APPROVE', 'REJECT', 'EDIT', 'BAN');
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     phone VARCHAR(20) UNIQUE NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL, 
+    patronymic VARCHAR(50),
     password_hash VARCHAR(255) NOT NULL,
     rating DECIMAL(3,2),
     two_fa_enabled BOOLEAN DEFAULT FALSE,
@@ -221,7 +223,7 @@ CREATE INDEX idx_transactions_created_at ON transactions(created_at);
 CREATE TABLE subscription_plans (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,  -- Название тарифа, например, "Basic", "Pro"
-    price DECIMAL(26,16) NOT NULL DEFAULT 0.00,
+    price DECIMAL(26,16) NOT NULL DEFAULT 0,
     currency currency_type NOT NULL DEFAULT 'RUB',
     max_listings INTEGER NOT NULL DEFAULT 0,
     priority_search BOOLEAN NOT NULL DEFAULT FALSE,

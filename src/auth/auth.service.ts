@@ -45,26 +45,27 @@ export class AuthService {
     const user = this.userRepository.create({
       email: dto.email,
       phone: dto.phone,
+      first_name: dto.first_name,
+      last_name: dto.last_name,
+      patronymic: dto.patronymic,
       password_hash: hash,
-      full_name: dto.full_name,
     });
     return this.userRepository.save(user);
   }
 
-  private async generateTokens(user: User) {
-    const roles = await this.userService.getUserRoles(user.id);
-    const payload = { sub: user.id, roles };
+  private async generateTokens(userId: User) {
+    const roles = await this.userService.getUserRoles(userId);
+    const payload = { sub: userId, roles };
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: this.configService.get('JWT_EXPIRES_IN'),
     });
 
     const refreshToken = crypto.randomBytes(64).toString('base64url');
-    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
-
-    return { accessToken, refreshToken, refreshTokenHash };
+    return { accessToken, refreshToken };
   }
 
-  private async saveTokens(userId: number, refreshTokenHash: string) {
+  private async saveToken(userId: number, refreshToken: string) {
+    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
     await this.tokenRepository.save({
       user: { id: userId },
       refresh_token_hash: refreshTokenHash,
@@ -83,7 +84,7 @@ export class AuthService {
   }
 
   private async validateUser(dto: LoginDto) {
-    const user = await this.userRepository.findOneBy({ email: dto.email });
+    const user = await this.userRepository.findOneBy({ phone: dto.phone });
     if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -95,15 +96,15 @@ export class AuthService {
     await this.checkPhoneExists(dto.phone);
     const user = await this.createUser(dto);
     await this.userService.addRole(user.id, this.DEFAULT_USER_ROLE);
-    const { accessToken, refreshToken, refreshTokenHash } = await this.generateTokens(user);
-    await this.saveTokens(user.id, refreshTokenHash);
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
+    await this.saveToken(user.id, refreshToken);
     return { accessToken, refreshToken };
   }
 
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto);
-    const { accessToken, refreshToken, refreshTokenHash } = await this.generateTokens(user);
-    await this.saveTokens(user.id, refreshTokenHash);
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
+    await this.saveToken(user.id, refreshToken);
     return { accessToken, refreshToken };
   }
 
@@ -118,8 +119,8 @@ export class AuthService {
     await this.tokenRepository.update(validToken.id, { revoked: true });
 
     if (!validToken.user) throw new UnauthorizedException('User not found');
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenHash: newHash } = await this.generateTokens(validToken.user);
-    await this.saveTokens(validToken.user.id, newHash);
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(validToken.user.id);
+    await this.saveToken(validToken.user.id, newRefreshToken);
     return { newAccessToken, newRefreshToken };
   }
 

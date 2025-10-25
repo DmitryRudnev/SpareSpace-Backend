@@ -5,7 +5,7 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   email: string;
 
   @Column({ unique: true })
@@ -15,7 +15,13 @@ export class User {
   password_hash: string;
 
   @Column()
-  full_name: string;
+  first_name: string;
+
+  @Column()
+  last_name: string;
+
+  @Column()
+  patronymic: string;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
   rating: number;
