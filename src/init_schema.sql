@@ -48,16 +48,6 @@ CREATE TABLE user_roles (
 CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role ON user_roles(role);
 
-CREATE OR REPLACE FUNCTION assign_default_role() RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO user_roles (user_id, role) VALUES (NEW.id, 'RENTER');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_assign_default_role AFTER INSERT ON users
-FOR EACH ROW EXECUTE FUNCTION assign_default_role();
-
 
 
 CREATE TABLE listings (
@@ -108,24 +98,6 @@ CREATE INDEX idx_bookings_renter_id ON bookings(renter_id);
 CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_bookings_period ON bookings USING GIST(period);
 
--- проверяет пересечения периодов бронирования
-CREATE FUNCTION check_booking_overlap() RETURNS TRIGGER AS $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM bookings 
-        WHERE listing_id = NEW.listing_id 
-        AND status != 'CANCELLED' 
-        AND period && NEW.period
-    ) THEN
-        RAISE EXCEPTION 'Booking period overlaps with existing booking';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_booking_overlap BEFORE INSERT OR UPDATE ON bookings
-FOR EACH ROW EXECUTE FUNCTION check_booking_overlap();
-
 
 
 CREATE TABLE wallets (
@@ -134,25 +106,7 @@ CREATE TABLE wallets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE FUNCTION update_wallet_timestamp() RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_wallet_updated BEFORE UPDATE ON wallets
-FOR EACH ROW EXECUTE FUNCTION update_wallet_timestamp();
-
-CREATE FUNCTION create_wallet_on_user_insert() RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO wallets (user_id) VALUES (NEW.id);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_create_wallet AFTER INSERT ON users
-FOR EACH ROW EXECUTE FUNCTION create_wallet_on_user_insert();
+CREATE INDEX idx_wallets_user_id ON wallets(user_id);
 
 
 
@@ -166,21 +120,6 @@ CREATE TABLE wallet_balances (
 
 CREATE INDEX idx_wallet_balances_wallet_id ON wallet_balances(wallet_id);
 CREATE INDEX idx_wallet_balances_currency ON wallet_balances(currency);
-
-CREATE FUNCTION update_wallet_on_balance_change() RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'DELETE' THEN
-        UPDATE wallets SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.wallet_id;
-    ELSE
-        UPDATE wallets SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.wallet_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_wallet_on_balance_change
-AFTER INSERT OR UPDATE OR DELETE ON wallet_balances
-FOR EACH ROW EXECUTE FUNCTION update_wallet_on_balance_change();
 
 
 
@@ -251,16 +190,6 @@ CREATE TABLE user_subscriptions (
 CREATE INDEX idx_user_subscriptions_user_id ON user_subscriptions(user_id);
 CREATE INDEX idx_user_subscriptions_plan_id ON user_subscriptions(plan_id);
 
-CREATE FUNCTION update_user_subscriptions_timestamp() RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_user_subscriptions_updated BEFORE UPDATE ON user_subscriptions
-FOR EACH ROW EXECUTE FUNCTION update_user_subscriptions_timestamp();
-
 
 
 -- чат между двумя пользователями по конкретному объявлению
@@ -290,19 +219,6 @@ CREATE TABLE messages (
 
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
-
--- обновляет время последнего сообщения в таблице чатов
-CREATE FUNCTION update_conversation_last_message() RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE conversations
-    SET last_message_at = NEW.sent_at
-    WHERE id = NEW.conversation_id;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_conversation_last_message AFTER INSERT ON messages
-FOR EACH ROW EXECUTE FUNCTION update_conversation_last_message();
 
 
 
@@ -335,24 +251,6 @@ CREATE TABLE reviews (
 CREATE INDEX idx_reviews_listing_id ON reviews(listing_id);
 CREATE INDEX idx_reviews_to_user_id ON reviews(to_user_id);
 
--- рассчитывает средний рейтинг пользователя при новом отзыве
-CREATE FUNCTION update_user_rating() RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE users 
-    SET rating = (
-        SELECT AVG(rating::DECIMAL) 
-        FROM reviews r
-        JOIN listings l ON r.listing_id = l.id
-        WHERE l.user_id = (CASE WHEN TG_OP = 'DELETE' THEN OLD.to_user_id ELSE NEW.to_user_id END)
-    )
-    WHERE id = (CASE WHEN TG_OP = 'DELETE' THEN OLD.to_user_id ELSE NEW.to_user_id END);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_rating AFTER INSERT OR UPDATE or DELETE ON reviews
-FOR EACH ROW EXECUTE FUNCTION update_user_rating();
-
 
 
 -- хранит публичные вопросы и ответы по объявлениям
@@ -383,19 +281,6 @@ CREATE TABLE view_history (
 CREATE INDEX idx_view_history_user_id ON view_history(user_id);
 CREATE INDEX idx_view_history_listing_id ON view_history(listing_id);
 
--- обновляет счетчик просмотров у объявления
-CREATE FUNCTION update_views_count() RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE listings 
-    SET views_count = views_count + 1
-    WHERE id = NEW.listing_id;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_views_count AFTER INSERT ON view_history
-FOR EACH ROW EXECUTE FUNCTION update_views_count();
-
 
 
 CREATE TABLE reposts (
@@ -409,25 +294,6 @@ CREATE TABLE reposts (
 CREATE INDEX idx_reposts_user_id ON reposts(user_id);
 CREATE INDEX idx_reposts_listing_id ON reposts(listing_id);
 
--- обновляет счетчик репостов у объявления
-CREATE FUNCTION update_reposts_count() RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE listings 
-        SET reposts_count = reposts_count + 1
-        WHERE id = NEW.listing_id;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE listings 
-        SET reposts_count = GREATEST(reposts_count - 1, 0)
-        WHERE id = OLD.listing_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_reposts_count AFTER INSERT OR DELETE ON reposts
-FOR EACH ROW EXECUTE FUNCTION update_reposts_count();
-
 
 
 CREATE TABLE favorites (
@@ -440,25 +306,6 @@ CREATE TABLE favorites (
 
 CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_favorites_listing_id ON favorites(listing_id);
-
--- обновляет счетчик избранного у объявления
-CREATE FUNCTION update_favorites_count() RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE listings 
-        SET favorites_count = favorites_count + 1
-        WHERE id = NEW.listing_id;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE listings 
-        SET favorites_count = GREATEST(favorites_count - 1, 0)
-        WHERE id = OLD.listing_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_favorites_count AFTER INSERT OR DELETE ON favorites
-FOR EACH ROW EXECUTE FUNCTION update_favorites_count();
 
 
 
@@ -474,16 +321,6 @@ CREATE TABLE user_tokens (
 
 CREATE INDEX idx_user_tokens_user_id ON user_tokens(user_id);
 CREATE INDEX idx_user_tokens_refresh_token ON user_tokens(refresh_token_hash);
-
-CREATE FUNCTION update_user_tokens_timestamp() RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_user_tokens_updated BEFORE UPDATE ON user_tokens
-FOR EACH ROW EXECUTE FUNCTION update_user_tokens_timestamp();
 
 
 
