@@ -53,6 +53,14 @@ export class AuthService {
     return this.userRepository.save(user);
   }
 
+  private async hashRefreshToken(refreshToken: string) {
+    const refreshTokenSecret = this.configService.get('REFRESH_TOKEN_SECRET');
+    return crypto
+      .createHmac('sha256', refreshTokenSecret)
+      .update(refreshToken)
+      .digest('hex');
+  }
+
   private async generateTokens(userId: User) {
     const roles = await this.userService.getUserRoles(userId);
     const payload = { sub: userId, roles };
@@ -65,22 +73,13 @@ export class AuthService {
   }
 
   private async saveToken(userId: number, refreshToken: string) {
-    const refreshTokenHash = await bcrypt.hash(refreshToken, this.BCRYPT_SALT_ROUNDS);
+    const refreshTokenHash = await hashRefreshToken(refreshToken);
     await this.tokenRepository.save({
       user: { id: userId },
       refresh_token_hash: refreshTokenHash,
       expiry: new Date(Date.now() + this.getRefreshTokenExpiryMs()),
       revoked: false,
     });
-  }
-
-  private async findValidToken(tokens: UserToken[], refreshToken: string) {
-    for (const token of tokens) {
-      if (await bcrypt.compare(refreshToken, token.refresh_token_hash)) {
-        return token;
-      }
-    }
-    return null;
   }
 
   private async validateUser(dto: LoginDto) {
@@ -109,28 +108,29 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const tokens = await this.tokenRepository.find({
-      where: { revoked: false, expiry: MoreThan(new Date()) },
+    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    const token = await this.tokenRepository.findOne({
+      where: { refresh_token_hash: refreshTokenHash },
       relations: ['user']
     });
-    const validToken = await this.findValidToken(tokens, refreshToken);
 
-    if (!validToken || validToken.expiry < new Date() || validToken.revoked) throw new UnauthorizedException('Invalid or expired token');
-    await this.tokenRepository.update(validToken.id, { revoked: true });
+    if (!token || token.expiry < new Date() || token.revoked) throw new UnauthorizedException('Invalid or expired token');
+    await this.tokenRepository.update(token.id, { revoked: true });
 
-    if (!validToken.user) throw new UnauthorizedException('User not found');
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(validToken.user.id);
+    if (!token.user) throw new UnauthorizedException('User not found');
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.generateTokens(token.user.id);
     await this.saveToken(validToken.user.id, newRefreshToken);
     return { newAccessToken, newRefreshToken };
   }
 
   async logout(refreshToken: string) {
-    const tokens = await this.tokenRepository.find({
-      where: { revoked: false }
+    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    const token = await this.tokenRepository.findOne({
+      where: { refresh_token_hash: refreshTokenHash },
+      relations: ['user']
     });
-    const validToken = await this.findValidToken(tokens, refreshToken);
-    if (validToken) {
-      await this.tokenRepository.update(validToken.id, { revoked: true });
+    if (token) {
+      await this.tokenRepository.update(token.id, { revoked: true });
     }
   }
 }
