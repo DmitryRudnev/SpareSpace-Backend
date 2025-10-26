@@ -39,7 +39,7 @@ export class ListingsService {
 
   private parseAvailability(availability: any[]) {
     if (!availability || !Array.isArray(availability)) return [];
-    return availability.map(p => `tsrange('${p.start}', '${p.end}', '[]')`);
+    return availability.map(p => `[${p.start},${p.end})`);
   }
 
   private async validateListingOwnership(id: number, userId: number) {

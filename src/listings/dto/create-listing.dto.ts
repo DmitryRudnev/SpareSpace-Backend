@@ -19,8 +19,8 @@ export class CreateListingDto {
   @IsString()
   title: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   description: string;
 
   @IsNumber()
@@ -33,14 +33,14 @@ export class CreateListingDto {
   @IsEnum(CurrencyType)
   currency: CurrencyType = CurrencyType.RUB;
 
-  @IsNumber()
   @IsOptional()
+  @IsNumber()
   @Min(-90)
   @Max(90)
   latitude: number;
 
-  @IsNumber()
   @IsOptional()
+  @IsNumber()
   @Min(-180)
   @Max(180)
   longitude: number;
@@ -48,21 +48,21 @@ export class CreateListingDto {
   @IsString()
   address: string;
 
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  @IsOptional()
   size: number;
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
   photos_json: string[];
 
-  @IsObject()
   @IsOptional()
+  @IsObject()
   amenities: any;
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AvailabilityPeriodDto)
   availability: AvailabilityPeriodDto[];

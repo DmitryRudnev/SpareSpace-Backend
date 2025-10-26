@@ -1,13 +1,15 @@
-import { IsInt, IsDateString, MinDate } from 'class-validator';
+import { IsInt, IsDateString, IsDate, MinDate } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateBookingDto {
   @IsInt()
   listing_id: number;
 
-  @IsDateString()
-  start_date: string;
+  @Type(() => Date)
+  @IsDate()
+  start_date: Date;
 
-  @IsDateString()
-  @MinDate(new Date(Date.now()))
-  end_date: string;
+  @Type(() => Date)
+  @IsDate()
+  end_date: Date;
 }

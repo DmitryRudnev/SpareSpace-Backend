@@ -30,7 +30,7 @@ export class AuthService {
     return days * 24 * 60 * 60 * 1000;
   }
 
-  private async checkEmailExists(email: string | undefined) {
+  private async checkEmailExists(email: string) {
     const exists = await this.userRepository.findOneBy({ email });
     if (exists) throw new ConflictException('Email already exists');
   }
@@ -91,8 +91,8 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    await this.checkEmailExists(dto.email);
     await this.checkPhoneExists(dto.phone);
+    if (dto.email) await this.checkEmailExists(dto.email);
     const user = await this.createUser(dto);
     await this.userService.addRole(user.id, this.DEFAULT_USER_ROLE);
     const { accessToken, refreshToken } = await this.generateTokens(user.id);
@@ -129,8 +129,15 @@ export class AuthService {
       where: { refresh_token_hash: refreshTokenHash },
       relations: ['user']
     });
-    if (token) {
-      await this.tokenRepository.update(token.id, { revoked: true });
+    
+    if (!token) {
+      throw new UnauthorizedException('Refresh token not found');
     }
+
+    if (token.revoked) {
+      throw new ConflictException('Refresh token already revoked');
+    }
+
+    await this.tokenRepository.update(token.id, { revoked: true });
   }
 }

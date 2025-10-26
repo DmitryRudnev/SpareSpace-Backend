@@ -56,13 +56,16 @@ export class ReviewsService {
   }
 
   private buildSearchQuery(searchDto: SearchReviewsDto) {
+    console.log("1");
     const query = this.reviewRepository.createQueryBuilder('review')
       .leftJoinAndSelect('review.from_user', 'fromUser')
       .leftJoinAndSelect('review.to_user', 'toUser')
       .leftJoinAndSelect('review.listing', 'listing');
 
+    console.log("2");
     if (searchDto.to_user_id) query.andWhere('review.to_user.id = :toUserId', { toUserId: searchDto.to_user_id });
     if (searchDto.listing_id) query.andWhere('review.listing.id = :listingId', { listingId: searchDto.listing_id });
+    console.log("3");
 
     if (searchDto.limit) query.limit(searchDto.limit);
     if (searchDto.offset) query.offset(searchDto.offset);
