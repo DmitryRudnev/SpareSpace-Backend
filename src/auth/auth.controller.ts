@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AtLeastOneFieldPipe } from './pipes/at-least-one-field.pipe';
 
 @Controller('auth')
 export class AuthController {
@@ -16,7 +17,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto) {
+  async login(@Body(AtLeastOneFieldPipe) dto: LoginDto) {
     return this.authService.login(dto);
   }
 

@@ -83,16 +83,19 @@ export class AuthService {
   }
 
   private async validateUser(dto: LoginDto) {
-    const user = await this.userRepository.findOneBy({ phone: dto.phone });
-    if (!user || !(await bcrypt.compare(dto.password, user.password_hash))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const where = dto.email ? { email: dto.email } : { phone: dto.phone };
+    const user = await this.userRepository.findOneBy(where);
+    
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!(await bcrypt.compare(dto.password, user.password_hash))) 
+      throw new UnauthorizedException('Invalid password');
+
     return user;
   }
 
   async register(dto: RegisterDto) {
     await this.checkPhoneExists(dto.phone);
-    if (dto.email) await this.checkEmailExists(dto.email);
+    await this.checkEmailExists(dto.email);
     const user = await this.createUser(dto);
     await this.userService.addRole(user.id, this.DEFAULT_USER_ROLE);
     const { accessToken, refreshToken } = await this.generateTokens(user.id);

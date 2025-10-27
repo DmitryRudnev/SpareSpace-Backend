@@ -5,7 +5,12 @@ export class LoginDto {
   @IsNotEmpty()
   @MinLength(10)
   @MaxLength(20)
-  phone: string;
+  phone?: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(100)
+  email?: string;
 
   @IsString()
   @IsNotEmpty()
