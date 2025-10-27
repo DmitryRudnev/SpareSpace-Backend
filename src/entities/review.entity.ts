@@ -23,7 +23,7 @@ export class Review {
   rating: number;
 
   @Column({ type: 'text', nullable: true })
-  text: string;
+  text?: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;

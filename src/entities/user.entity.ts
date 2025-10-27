@@ -21,10 +21,10 @@ export class User {
   last_name: string;
 
   @Column()
-  patronymic: string;
+  patronymic?: string;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
-  rating: number;
+  rating?: number;
 
   @Column({ default: false })
   two_fa_enabled: boolean;

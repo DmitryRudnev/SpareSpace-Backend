@@ -21,7 +21,7 @@ export class Listing {
   title: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description?: string;
 
   @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
@@ -33,19 +33,19 @@ export class Listing {
   currency: CurrencyType;
 
   @Column({ type: 'geometry', srid: 4326, nullable: true })
-  location: string;
+  location?: string;
 
   @Column()
   address: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  size: number;
+  size?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  photos_json: any;
+  photos_json?: any;
 
   @Column({ type: 'jsonb', nullable: true })
-  amenities: any;
+  amenities?: any;
 
   @Column({ type: 'tsrange', array: true, default: '{}' })
   availability: string[];
