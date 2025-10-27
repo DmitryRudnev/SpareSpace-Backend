@@ -6,6 +6,7 @@ import { ChangeStatusDto } from './dto/change-status.dto';
 import { SearchBookingsDto } from './dto/search-bookings.dto';
 import { User } from '../common/decorators/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AtLeastOneFieldPipe } from './pipes/at-least-one-field.pipe';
 
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +30,7 @@ export class BookingsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBookingDto: UpdateBookingDto, @User('userId') userId: number) {
+  update(@Param('id') id: string, @Body(AtLeastOneFieldPipe) updateBookingDto: UpdateBookingDto, @User('userId') userId: number) {
     return this.bookingsService.update(+id, updateBookingDto, userId);
   }
 

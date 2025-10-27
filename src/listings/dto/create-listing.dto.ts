@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ListingType } from '../../common/enums/listing-type.enum';
 import { CurrencyType } from '../../common/enums/currency-type.enum';
@@ -17,10 +17,12 @@ export class CreateListingDto {
   type: ListingType;
 
   @IsString()
+  @IsNotEmpty()
   title: string;
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @IsNumber()
@@ -46,6 +48,7 @@ export class CreateListingDto {
   longitude: number;
 
   @IsString()
+  @IsNotEmpty()
   address: string;
 
   @IsOptional()

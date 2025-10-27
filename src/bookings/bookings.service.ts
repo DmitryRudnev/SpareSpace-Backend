@@ -11,6 +11,7 @@ import { UsersService } from '../users/users.service';
 import { BookingStatus } from '../common/enums/booking-status.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
+// import { Range } from 'typeorm';
 
 @Injectable()
 export class BookingsService {
@@ -60,21 +61,21 @@ export class BookingsService {
     return `[${startDate.toISOString()},${endDate.toISOString()})`;
   }
 
-  private async checkListingAvailability(listingId: number, startDate: Date, endDate: Date): Promise<boolean> {
-    const overlappingBooking = await this.bookingRepository
+  private async checkListingAvailability(listingId: number, start: Date, end: Date, excludeBookingId?: number) {
+    const query = this.bookingRepository
       .createQueryBuilder('booking')
       .where('booking.listing_id = :listingId', { listingId })
       .andWhere('booking.status IN (:...statuses)', { 
         statuses: [BookingStatus.PENDING, BookingStatus.CONFIRMED] 
       })
-      .andWhere('booking.period && tsrange(:startDate, :endDate, :bounds)', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        bounds: '[)'
-      })
-      .getOne();
+      .andWhere('booking.period && tsrange(:start, :end)', { start, end });
 
-    return !overlappingBooking;
+    if (excludeBookingId) {
+      query.andWhere('booking.id != :excludeBookingId', { excludeBookingId });
+    }
+
+    const overlapping = await query.getOne();
+    return !overlapping;
   }
 
   async create(dto: CreateBookingDto, userId: number): Promise<Booking> {
@@ -152,43 +153,31 @@ export class BookingsService {
   }
 
   async update(id: number, dto: UpdateBookingDto, userId: number): Promise<Booking> {
-    // if (dto.start_date < new Date()) {
-    //   throw new BadRequestException('Start date cannot be in the past');
-    // }
-
-    // if (dto.end_date <= dto.start_date) {
-    //   throw new BadRequestException('End date cannot be before start date ');
-    // }
-
     const booking = await this.findOne(id);
     
-    if (booking.renter.id !== userId) {
-      throw new UnauthorizedException('Only renter can update this booking');
-    }
+    if (booking.renter.id !== userId) throw new UnauthorizedException('Only renter can update this booking');
+    if (booking.status !== BookingStatus.PENDING) throw new BadRequestException('Only pending bookings can be updated');
 
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Only pending bookings can be updated');
-    }
+    const bookingWithPeriod = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .select('booking.*')
+      .addSelect('LOWER(booking.period)', 'periodStart')
+      .addSelect('UPPER(booking.period)', 'periodEnd')
+      .where('booking.id = :id', { id })
+      .getRawOne();
 
-    if (dto.start_date && dto.end_date) {
-      if (dto.start_date >= dto.end_date) {
-        throw new BadRequestException('Invalid period');
-      }
+    const start_date = dto.start_date ?? new Date(bookingWithPeriod.periodStart);
+    const end_date = dto.end_date ?? new Date(bookingWithPeriod.periodEnd);
 
-      const isAvailable = await this.checkListingAvailability(
-        booking.listing.id, 
-        dto.start_date, 
-        dto.end_date
-      );
-      
-      if (!isAvailable) {
-        throw new ConflictException('Listing not available for selected period');
-      }
+    if (start_date < new Date()) throw new BadRequestException('Start date cannot be in the past');
+    if (end_date <= start_date) throw new BadRequestException('End date cannot be before start date');
 
-      booking.period = this.parseTsRange(dto.start_date, dto.end_date);
-      const duration = this.calculateDuration(dto.start_date, dto.end_date, booking.listing.price_period);
-      booking.price_total = Math.round(booking.listing.price * duration * 100) / 100;
-    }
+    const isAvailable = await this.checkListingAvailability(booking.listing.id, start_date, end_date, id);
+    if (!isAvailable) throw new ConflictException('Listing not available for selected period');
+
+    booking.period = this.parseTsRange(start_date, end_date);
+    const duration = this.calculateDuration(start_date, end_date, booking.listing.price_period);
+    booking.price_total = booking.listing.price * duration;
 
     return this.bookingRepository.save(booking);
   }
