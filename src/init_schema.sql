@@ -150,6 +150,7 @@ CREATE TABLE transactions (
     booking_id BIGINT REFERENCES bookings(id) ON DELETE SET NULL,
     commission DECIMAL(26,16) DEFAULT 0.00,
     description TEXT,
+    gateway_transaction_id VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -15,6 +15,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { UsersModule } from './users/users.module';
 import { UserRole } from './entities/user-role.entity';
+import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
   imports: [
@@ -40,7 +41,7 @@ import { UserRole } from './entities/user-role.entity';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [User, UserToken, Listing, ViewHistory, Booking, Review, UserRole],
+        entities: [User, UserToken, Listing, ViewHistory, Booking, Review, UserRole, Wallet, WalletBalance, Transaction],
         synchronize: false,
       }),
       inject: [ConfigService],
@@ -50,6 +51,7 @@ import { UserRole } from './entities/user-role.entity';
     BookingsModule,
     ReviewsModule,
     UsersModule,
+    WalletsModule,
   ],
 })
 export class AppModule {}
