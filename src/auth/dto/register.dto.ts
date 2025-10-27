@@ -19,7 +19,6 @@ export class RegisterDto {
   @IsPhoneNumber()
   phone: string;
 
-  @IsOptional()
   @IsEmail()
   email: string;
 
