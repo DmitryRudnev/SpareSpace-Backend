@@ -130,10 +130,6 @@ export class ListingsService {
         user: { id: userId },
         listing: listing,
       });
-    } else {
-      await this.viewHistoryRepository.insert({
-        listing: listing,
-      });
     }
     return listing;
   }
