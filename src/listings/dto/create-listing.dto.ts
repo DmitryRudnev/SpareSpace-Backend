@@ -23,7 +23,7 @@ export class CreateListingDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description?: string;
 
   @IsNumber()
   @Min(0)
@@ -39,13 +39,13 @@ export class CreateListingDto {
   @IsNumber()
   @Min(-90)
   @Max(90)
-  latitude: number;
+  latitude?: number;
 
   @IsOptional()
   @IsNumber()
   @Min(-180)
   @Max(180)
-  longitude: number;
+  longitude?: number;
 
   @IsString()
   @IsNotEmpty()
@@ -54,19 +54,19 @@ export class CreateListingDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  size: number;
+  size?: number;
 
   @IsOptional()
   @IsArray()
-  photos_json: string[];
+  photos_json?: string[];
 
   @IsOptional()
   @IsObject()
-  amenities: any;
+  amenities?: any;
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AvailabilityPeriodDto)
-  availability: AvailabilityPeriodDto[];
+  availability?: AvailabilityPeriodDto[];
 }
