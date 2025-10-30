@@ -17,6 +17,9 @@ import { UsersModule } from './users/users.module';
 import { UserRole } from './entities/user-role.entity';
 import { WalletsModule } from './wallets/wallets.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SubscriptionPlan } from './entities/subscription-plan.entity';
+import { UserSubscription } from './entities/user-subscription.entity';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -42,7 +45,11 @@ import { NotificationsModule } from './notifications/notifications.module';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [User, UserToken, Listing, ViewHistory, Booking, Review, UserRole, Wallet, WalletBalance, Transaction, Notification],
+        entities: [
+          User, UserToken, Listing, ViewHistory, Booking, Review, UserRole,
+          Wallet, WalletBalance, Transaction, Notification,
+          SubscriptionPlan, UserSubscription,
+        ],
         synchronize: false,
       }),
       inject: [ConfigService],
@@ -54,6 +61,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     WalletsModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
 })
 export class AppModule {}
