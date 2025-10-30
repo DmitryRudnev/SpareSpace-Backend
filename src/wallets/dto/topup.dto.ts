@@ -1,4 +1,4 @@
-import { IsNumber, IsEnum, IsString } from 'class-validator';
+import { IsNumber, IsEnum, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CurrencyType } from '../../common/enums/currency-type.enum';
 import { PaymentMethod } from '../../common/enums/payment-method.enum';

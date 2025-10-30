@@ -8,7 +8,7 @@ export class WalletBalance {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.balances, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Wallet, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'wallet_id' })
   wallet: Wallet;
 

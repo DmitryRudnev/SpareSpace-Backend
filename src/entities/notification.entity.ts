@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { NotificationChannel } from '../common/enums/notification-channel.enum';
@@ -12,7 +12,7 @@ export class Notification {
   @Column()
   user_id: number;
 
-  @ManyToOne(() => User, (user) => user.notifications, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

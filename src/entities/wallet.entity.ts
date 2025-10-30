@@ -6,7 +6,7 @@ export class Wallet {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @ManyToOne(() => User, (user) => user.wallets, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

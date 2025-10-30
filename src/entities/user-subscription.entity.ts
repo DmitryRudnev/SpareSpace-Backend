@@ -19,7 +19,7 @@ export class UserSubscription {
   @Column()
   user_id: number;
 
-  @ManyToOne(() => User, (user) => user.userSubscriptions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

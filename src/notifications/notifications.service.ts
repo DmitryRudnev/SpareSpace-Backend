@@ -71,8 +71,8 @@ export class NotificationsService {
     return {
       notifications,
       total,
-      limit: searchDto.limit || 10,
-      offset: searchDto.offset || 0,
+      limit: searchDto.limit,
+      offset: searchDto.offset,
     };
   }
 

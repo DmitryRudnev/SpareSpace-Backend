@@ -10,7 +10,7 @@ export class SearchNotificationsDto {
   @IsInt()
   @Min(1)
   @IsPositive()
-  limit?: number = 20;
+  limit?: number = 10;
 
   @IsOptional()
   @Type(() => Number)

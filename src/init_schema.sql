@@ -64,7 +64,7 @@ CREATE TABLE listings (
     size DECIMAL(10,2),
     photos_json JSONB,  -- массив URL в S3
     amenities JSONB,  -- например, { "security": true, "electricity": true }
-    availability tsrange[] DEFAULT '{}',  -- массив периодов доступности
+    -- availability tsrange[] DEFAULT '{}',  -- массив периодов доступности
     status listing_status NOT NULL DEFAULT 'DRAFT',
     views_count INTEGER DEFAULT 0,
     reposts_count INTEGER DEFAULT 0,

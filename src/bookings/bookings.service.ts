@@ -11,7 +11,6 @@ import { UsersService } from '../users/users.service';
 import { BookingStatus } from '../common/enums/booking-status.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
-// import { Range } from 'typeorm';
 
 @Injectable()
 export class BookingsService {

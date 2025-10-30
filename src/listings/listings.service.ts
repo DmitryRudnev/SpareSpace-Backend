@@ -37,10 +37,10 @@ export class ListingsService {
     return null;
   }
 
-  private parseAvailability(availability: any[]) {
-    if (!availability || !Array.isArray(availability)) return [];
-    return availability.map(p => `[${p.start},${p.end})`);
-  }
+  // private parseAvailability(availability: any[]) {
+  //   if (!availability || !Array.isArray(availability)) return [];
+  //   return availability.map(p => `[${p.start},${p.end})`);
+  // }
 
   private async validateListingOwnership(id: number, userId: number) {
     const listing = await this.listingRepository.findOne({
@@ -98,7 +98,7 @@ export class ListingsService {
       address: dto.address,
       size: dtoSize,
       photos_json: dtoPhotos,
-      availability: this.parseAvailability(dto.availability),
+      // availability: this.parseAvailability(dto.availability),
     }
     if (dto.latitude && dto.longitude) {
       listingData.location = `POINT(${dto.longitude} ${dto.latitude})`;
@@ -148,7 +148,7 @@ export class ListingsService {
     if (dto.size !== undefined) listing.size = dto.size;
     if (dto.photos_json !== undefined) listing.photos_json = dto.photos_json;
     if (dto.amenities !== undefined) listing.amenities = JSON.stringify(dto.amenities);
-    if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
+    // if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
     return this.listingRepository.save(listing);
   }
 

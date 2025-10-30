@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Repository, In, DataSource, LessThanOrEqual, IsNull, MoreThan } from 'typeorm';
 import { SubscriptionPlan } from '../entities/subscription-plan.entity';
 import { UserSubscription } from '../entities/user-subscription.entity';
 import {
@@ -171,7 +171,7 @@ export class SubscriptionsService {
         user_id: userId,
         plan_id: dto.plan_id,
         start_date: startDate,
-        end_date,
+        end_date: endDate,
         status: SubscriptionStatus.ACTIVE,
       });
 

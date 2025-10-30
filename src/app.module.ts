@@ -3,23 +3,31 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+
+// Модули приложения
 import { AuthModule } from './auth/auth.module';
+import { ListingsModule } from './listings/listings.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { UsersModule } from './users/users.module';
+import { WalletsModule } from './wallets/wallets.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+
+// Сущности
 import { User } from './entities/user.entity';
 import { UserToken } from './entities/user-token.entity';
 import { Listing } from './entities/listing.entity';
 import { ViewHistory } from './entities/view-history.entity';
 import { Booking } from './entities/booking.entity';
 import { Review } from './entities/review.entity';
-import { ListingsModule } from './listings/listings.module';
-import { BookingsModule } from './bookings/bookings.module';
-import { ReviewsModule } from './reviews/reviews.module';
-import { UsersModule } from './users/users.module';
 import { UserRole } from './entities/user-role.entity';
-import { WalletsModule } from './wallets/wallets.module';
-import { NotificationsModule } from './notifications/notifications.module';
+import { Wallet } from './entities/wallet.entity';
+import { WalletBalance } from './entities/wallet-balance.entity';
+import { Transaction } from './entities/transaction.entity';
+import { Notification } from './entities/notification.entity';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
 import { UserSubscription } from './entities/user-subscription.entity';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [

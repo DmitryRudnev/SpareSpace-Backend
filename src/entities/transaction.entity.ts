@@ -10,7 +10,10 @@ export class Transaction {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transactions, { onDelete: 'CASCADE' })
+  @Column({ name: 'wallet_id' })
+  walletId: number;
+
+  @ManyToOne(() => Wallet, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'wallet_id' })
   wallet: Wallet;
 
@@ -29,7 +32,7 @@ export class Transaction {
   @Column({ name: 'booking_id', nullable: true })
   bookingId?: number;
 
-  @ManyToOne(() => Booking, { nullable: true })
+  @ManyToOne(() => Booking, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'booking_id' })
   booking?: Booking;
 

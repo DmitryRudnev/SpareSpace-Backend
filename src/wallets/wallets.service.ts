@@ -4,7 +4,6 @@ import { Repository, In, DataSource } from 'typeorm';
 import { Wallet } from '../entities/wallet.entity';
 import { WalletBalance } from '../entities/wallet-balance.entity';
 import { Transaction } from '../entities/transaction.entity';
-import { GetWalletDto } from './dto/get-wallet.dto';
 import { GetBalancesDto } from './dto/get-balances.dto';
 import { TopupDto } from './dto/topup.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
@@ -130,7 +129,7 @@ export class WalletsService {
         amount: -dto.amount,
         currency: dto.currency,
         status: PaymentStatus.COMPLETED,
-        bookingId: null,
+        bookingId: undefined,
         description: dto.description || `Transfer to user ${dto.toUserId}`,
       });
       const toTransaction = manager.create(Transaction, {
@@ -139,7 +138,7 @@ export class WalletsService {
         amount: dto.amount,
         currency: dto.currency,
         status: PaymentStatus.COMPLETED,
-        bookingId: null,
+        bookingId: undefined,
         description: dto.description || `Transfer from user ${userId}`,
       });
 
