@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  HttpCode,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import {
   CreateSubscriptionPlanDto,
@@ -84,7 +73,7 @@ export class SubscriptionsController {
 
   @Patch(':id/cancel')
   @HttpCode(204)
-  cancelSubscription(@Param('id') id: string, @User('userId') userId: number) {
-    return this.subscriptionsService.cancelSubscription(+id, userId);
+  cancelSubscription(@Param('id') subscriptionPlanId: string, @User('userId') userId: number) {
+    return this.subscriptionsService.cancelSubscription(+subscriptionPlanId, userId);
   }
 }

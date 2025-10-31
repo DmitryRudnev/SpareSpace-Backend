@@ -16,22 +16,22 @@ export class NotificationsService {
     private usersService: UsersService,
   ) {}
 
-  private buildSearchQuery(userId: number, searchDto: SearchNotificationsDto) {
+  private buildSearchQuery(searchDto: SearchNotificationsDto, userId: number) {
     const query = this.notificationRepository
-      .createQueryBuilder('notification')
-      .where('notification.user_id = :userId', { userId })
-      .orderBy('notification.created_at', 'DESC');
+      .createQueryBuilder('notifications')
+      .where('notifications.user_id = :userId', { userId })
+      .orderBy('notifications.created_at', 'DESC');
 
     if (searchDto.type) {
-      query.andWhere('notification.type = :type', { type: searchDto.type });
+      query.andWhere('notifications.type = :type', { type: searchDto.type });
     }
 
     if (searchDto.channel) {
-      query.andWhere('notification.channel = :channel', { channel: searchDto.channel });
+      query.andWhere('notifications.channel = :channel', { channel: searchDto.channel });
     }
 
     if (searchDto.status) {
-      query.andWhere('notification.status = :status', { status: searchDto.status });
+      query.andWhere('notifications.status = :status', { status: searchDto.status });
     }
 
     if (searchDto.limit) {
@@ -65,8 +65,8 @@ export class NotificationsService {
     return this.notificationRepository.save(notification);
   }
 
-  async findAll(userId: number, searchDto: SearchNotificationsDto) {
-    const query = this.buildSearchQuery(userId, searchDto);
+  async findAll(searchDto: SearchNotificationsDto, userId: number) {
+    const query = this.buildSearchQuery(searchDto, userId);
     const [notifications, total] = await query.getManyAndCount();
     return {
       notifications,

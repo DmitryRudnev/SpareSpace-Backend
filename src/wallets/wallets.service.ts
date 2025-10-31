@@ -64,7 +64,7 @@ export class WalletsService {
     return this.dataSource.transaction(async (manager) => {
       const wallet = await this.getOrCreateWallet(userId);
       const balance = await this.getOrCreateBalance(wallet, dto.currency);
-      balance.balance += dto.amount;
+      balance.balance = +balance.balance + dto.amount;
       await manager.save(balance);
 
       const transaction = manager.create(Transaction, {
@@ -87,10 +87,10 @@ export class WalletsService {
     return this.dataSource.transaction(async (manager) => {
       const wallet = await this.getOrCreateWallet(userId);
       const balance = await this.getOrCreateBalance(wallet, dto.currency);
-      if (balance.balance < dto.amount) {
+      if (+balance.balance < dto.amount) {
         throw new BadRequestException('Insufficient balance');
       }
-      balance.balance -= dto.amount;
+      balance.balance = +balance.balance - dto.amount;
       await manager.save(balance);
 
       const transaction = manager.create(Transaction, {
@@ -112,15 +112,15 @@ export class WalletsService {
     return this.dataSource.transaction(async (manager) => {
       const fromWallet = await this.getOrCreateWallet(userId);
       const fromBalance = await this.getOrCreateBalance(fromWallet, dto.currency);
-      if (fromBalance.balance < dto.amount) {
+      if (+fromBalance.balance < dto.amount) {
         throw new BadRequestException('Insufficient balance');
       }
-      fromBalance.balance -= dto.amount;
+      fromBalance.balance = +fromBalance.balance - dto.amount;
       await manager.save(fromBalance);
 
       const toWallet = await this.getOrCreateWallet(dto.toUserId);
       const toBalance = await this.getOrCreateBalance(toWallet, dto.currency);
-      toBalance.balance += dto.amount;
+      toBalance.balance = +toBalance.balance + dto.amount;
       await manager.save(toBalance);
 
       const fromTransaction = manager.create(Transaction, {

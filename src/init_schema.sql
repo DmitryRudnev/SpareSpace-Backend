@@ -113,7 +113,7 @@ CREATE INDEX idx_wallets_user_id ON wallets(user_id);
 CREATE TABLE wallet_balances (
     id BIGSERIAL PRIMARY KEY,
     wallet_id BIGINT NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
-    balance DECIMAL(26,16) NOT NULL DEFAULT 0.00,
+    balance DECIMAL(26,16) NOT NULL DEFAULT 0,
     currency currency_type NOT NULL,
     UNIQUE (wallet_id, currency)
 );
@@ -148,7 +148,7 @@ CREATE TABLE transactions (
     currency currency_type NOT NULL,
     status payment_status NOT NULL DEFAULT 'COMPLETED',
     booking_id BIGINT REFERENCES bookings(id) ON DELETE SET NULL,
-    commission DECIMAL(26,16) DEFAULT 0.00,
+    commission DECIMAL(26,16) DEFAULT 0,
     description TEXT,
     gateway_transaction_id VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

@@ -134,8 +134,6 @@ export class SubscriptionsService {
       where: {
         user_id: userId,
         status: SubscriptionStatus.ACTIVE,
-        start_date: LessThanOrEqual(now),
-        end_date: IsNull() || MoreThan(now),
       },
       relations: ['plan'],
     });
@@ -179,9 +177,9 @@ export class SubscriptionsService {
     });
   }
 
-  async cancelSubscription(id: number, userId: number) {
+  async cancelSubscription(subscriptionPlanId: number, userId: number) {
     const subscription = await this.subscriptionRepository.findOne({
-      where: { id, user_id: userId },
+      where: { plan_id: subscriptionPlanId, user_id: userId },
       relations: ['plan'],
     });
 

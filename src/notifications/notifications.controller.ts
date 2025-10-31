@@ -13,13 +13,13 @@ export class NotificationsController {
 
   @Post()
   @HttpCode(201)
-  create(@Body() createDto: CreateNotificationDto, @User('userId') currentUserId: number) {
-    return this.notificationsService.create(createDto, currentUserId);
+  create(@Body() createDto: CreateNotificationDto, @User('userId') userId: number) {
+    return this.notificationsService.create(createDto, userId);
   }
 
   @Get()
   findAll(@Query() searchDto: SearchNotificationsDto, @User('userId') userId: number) {
-    return this.notificationsService.findAll(userId, searchDto);
+    return this.notificationsService.findAll(searchDto, userId);
   }
 
   @Get(':id')
