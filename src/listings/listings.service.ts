@@ -37,10 +37,10 @@ export class ListingsService {
     return null;
   }
 
-  // private parseAvailability(availability: any[]) {
-  //   if (!availability || !Array.isArray(availability)) return [];
-  //   return availability.map(p => `[${p.start},${p.end})`);
-  // }
+  private parseAvailability(availability: any[] | undefined) {
+    if (!availability || !Array.isArray(availability)) return [];
+    return availability.map(p => `[${p.start.toISOString()},${p.end.toISOString()})`);
+  }
 
   private async validateListingOwnership(id: number, userId: number) {
     const listing = await this.listingRepository.findOne({
@@ -63,7 +63,7 @@ export class ListingsService {
     if (searchDto.latitude && searchDto.longitude && searchDto.radius) {
       query.andWhere(
         "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
-        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius }
+        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius / 1000 }  // конвертируем в км
       );
     }
     if (searchDto.amenities) {
@@ -98,7 +98,7 @@ export class ListingsService {
       address: dto.address,
       size: dtoSize,
       photos_json: dtoPhotos,
-      // availability: this.parseAvailability(dto.availability),
+      availability: this.parseAvailability(dto.availability),
     }
     if (dto.latitude && dto.longitude) {
       listingData.location = `POINT(${dto.longitude} ${dto.latitude})`;
@@ -134,6 +134,44 @@ export class ListingsService {
     return listing;
   }
 
+  async findByUser(userId: number, currentUserId?: number, searchDto?: SearchListingsDto) {
+    await this.validateUser(userId);
+
+    const isOwner = currentUserId === userId;
+    const allowedStatuses = isOwner ? [ListingStatus.ACTIVE, ListingStatus.DRAFT] : [ListingStatus.ACTIVE];
+
+    const query = this.listingRepository
+      .createQueryBuilder('listing')
+      .leftJoinAndSelect('listing.user', 'user')
+      .where('listing.user_id = :userId', { userId })
+      .andWhere('listing.status IN (:...statuses)', { statuses: allowedStatuses });
+
+    if (searchDto?.type) query.andWhere('listing.type = :type', { type: searchDto.type });
+    if (searchDto?.currency) query.andWhere('listing.currency = :currency', { currency: searchDto.currency });
+    if (searchDto?.minPrice) query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
+    if (searchDto?.maxPrice) query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
+    if (searchDto?.price_period) query.andWhere('listing.price_period = :price_period', { price_period: searchDto.price_period });
+    if (searchDto?.latitude && searchDto?.longitude && searchDto?.radius) {
+      query.andWhere(
+        "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
+        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius / 1000 }  // конвертируем в км
+      );
+    }
+    if (searchDto?.amenities) {
+      Object.keys(searchDto.amenities).forEach(key => {
+        query.andWhere(`listing.amenities ->> '${key}' = :value`, { value: searchDto.amenities[key] });
+      });
+    }
+
+    query.orderBy('listing.created_at', 'DESC');
+
+    if (searchDto?.limit) query.limit(searchDto.limit);
+    if (searchDto?.offset) query.offset(searchDto.offset);
+
+    const [listings, total] = await query.getManyAndCount();
+    return { listings, total, limit: searchDto?.limit, offset: searchDto?.offset };
+  }
+
   async update(id: number, dto: UpdateListingDto, userId: number) {
     const listing = await this.validateListingOwnership(id, userId);
     if (dto.type) listing.type = dto.type;
@@ -148,7 +186,7 @@ export class ListingsService {
     if (dto.size !== undefined) listing.size = dto.size;
     if (dto.photos_json !== undefined) listing.photos_json = dto.photos_json;
     if (dto.amenities !== undefined) listing.amenities = JSON.stringify(dto.amenities);
-    // if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
+    if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
     return this.listingRepository.save(listing);
   }
 

@@ -47,8 +47,8 @@ export class Listing {
   @Column({ type: 'jsonb', nullable: true })
   amenities?: any;
 
-  // @Column({ type: 'tsrange', array: true, default: '{}' })
-  // availability: string[];
+  @Column({ type: 'tsrange', array: true, default: '{}' })
+  availability: string[];
 
   @Column({ type: 'enum', enum: ListingStatus, enumName: 'listing_status', default: ListingStatus.DRAFT })
   status: ListingStatus;

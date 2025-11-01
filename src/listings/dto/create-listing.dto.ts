@@ -1,16 +1,18 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsArray, Min, Max, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsArray, IsDate, Min, Max, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ListingType } from '../../common/enums/listing-type.enum';
 import { CurrencyType } from '../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
 
-// class AvailabilityPeriodDto {
-//   @IsString()
-//   start: string;
+class AvailabilityPeriodDto {
+  @Type(() => Date)
+  @IsDate()
+  start: Date;
 
-//   @IsString()
-//   end: string;
-// }
+  @Type(() => Date)
+  @IsDate()
+  end: Date;
+}
 
 export class CreateListingDto {
   @IsEnum(ListingType)
@@ -64,9 +66,9 @@ export class CreateListingDto {
   @IsObject()
   amenities?: any;
 
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => AvailabilityPeriodDto)
-  // availability?: AvailabilityPeriodDto[];
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilityPeriodDto)
+  availability?: AvailabilityPeriodDto[];
 }
