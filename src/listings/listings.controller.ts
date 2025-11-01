@@ -26,7 +26,6 @@ export class ListingsController {
     return this.listingsService.findOne(+id, userId);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('user/:userId')
   async findByUser(@Param('userId') userId: string, @Query() searchDto: SearchListingsDto, @User('userId') currentUserId?: number) {
     return this.listingsService.findByUser(+userId, currentUserId, searchDto);
