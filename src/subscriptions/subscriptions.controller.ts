@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import {
-  CreateSubscriptionPlanDto,
-  UpdateSubscriptionPlanDto,
-  CreateUserSubscriptionDto,
-  SearchSubscriptionPlansDto,
-  SearchUserSubscriptionsDto,
-} from './dto';
+
+import { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
+import { UpdateSubscriptionPlanDto } from './dto/update-subscription-plan.dto';
+import { CreateUserSubscriptionDto } from './dto/create-user-subscription.dto';
+import { SearchSubscriptionPlansDto } from './dto/search-subscription-plans.dto';
+import { SearchUserSubscriptionsDto } from './dto/search-user-subscriptions.dto';
+
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
