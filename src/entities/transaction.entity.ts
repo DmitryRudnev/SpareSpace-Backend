@@ -10,7 +10,7 @@ export class Transaction {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ name: 'wallet_id' })
+  @Column()
   walletId: number;
 
   @ManyToOne(() => Wallet, { onDelete: 'CASCADE' })
@@ -29,7 +29,7 @@ export class Transaction {
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.COMPLETED })
   status: PaymentStatus;
 
-  @Column({ name: 'booking_id', nullable: true })
+  @Column({ nullable: true })
   bookingId?: number;
 
   @ManyToOne(() => Booking, { nullable: true, onDelete: 'SET NULL' })
@@ -42,9 +42,9 @@ export class Transaction {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ name: 'gateway_transaction_id', type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   gatewayTransactionId?: string;
 
   @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  created_at: Date;
+  createdAt: Date;
 }

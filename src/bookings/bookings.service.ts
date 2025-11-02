@@ -78,11 +78,11 @@ export class BookingsService {
   }
 
   async create(dto: CreateBookingDto, userId: number): Promise<Booking> {
-    if (dto.start_date < new Date()) {
+    if (dto.startDate < new Date()) {
       throw new BadRequestException('Start date cannot be in the past');
     }
 
-    if (dto.end_date <= dto.start_date) {
+    if (dto.endDate <= dto.startDate) {
       throw new BadRequestException('End date cannot be before start date ');
     }
 
@@ -90,7 +90,7 @@ export class BookingsService {
     await this.validateRenterRole(user);
 
     const listing = await this.listingRepository.findOne({ 
-      where: { id: dto.listing_id, status: ListingStatus.ACTIVE },
+      where: { id: dto.listingId, status: ListingStatus.ACTIVE },
       relations: ['user']
     });
     
@@ -98,19 +98,19 @@ export class BookingsService {
       throw new BadRequestException('Invalid or inactive listing');
     }
 
-    const isAvailable = await this.checkListingAvailability(listing.id, dto.start_date, dto.end_date);
+    const isAvailable = await this.checkListingAvailability(listing.id, dto.startDate, dto.endDate);
     if (!isAvailable) {
       throw new ConflictException('Listing not available for selected period');
     }
 
-    const duration = this.calculateDuration(dto.start_date, dto.end_date, listing.price_period);
+    const duration = this.calculateDuration(dto.startDate, dto.endDate, listing.pricePeriod);
     const priceTotal = Math.round(listing.price * duration * 100) / 100;
 
     const booking = this.bookingRepository.create({
       listing: listing,
       renter: user,
-      period: this.parseTsRange(dto.start_date, dto.end_date),
-      price_total: priceTotal,
+      period: this.parseTsRange(dto.startDate, dto.endDate),
+      priceTotal: priceTotal,
       currency: listing.currency,
       status: BookingStatus.PENDING,
     });
@@ -165,8 +165,8 @@ export class BookingsService {
       .where('booking.id = :id', { id })
       .getRawOne();
 
-    const start_date = dto.start_date ?? new Date(bookingWithPeriod.periodStart);
-    const end_date = dto.end_date ?? new Date(bookingWithPeriod.periodEnd);
+    const start_date = dto.startDate ?? new Date(bookingWithPeriod.periodStart);
+    const end_date = dto.endDate ?? new Date(bookingWithPeriod.periodEnd);
 
     if (start_date < new Date()) throw new BadRequestException('Start date cannot be in the past');
     if (end_date <= start_date) throw new BadRequestException('End date cannot be before start date');
@@ -175,8 +175,8 @@ export class BookingsService {
     if (!isAvailable) throw new ConflictException('Listing not available for selected period');
 
     booking.period = this.parseTsRange(start_date, end_date);
-    const duration = this.calculateDuration(start_date, end_date, booking.listing.price_period);
-    booking.price_total = booking.listing.price * duration;
+    const duration = this.calculateDuration(start_date, end_date, booking.listing.pricePeriod);
+    booking.priceTotal = booking.listing.price * duration;
 
     return this.bookingRepository.save(booking);
   }

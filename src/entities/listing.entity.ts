@@ -27,7 +27,7 @@ export class Listing {
   price: number;
 
   @Column({ type: 'enum', enum: ListingPeriodType, enumName: 'listing_period_type', default: ListingPeriodType.DAY })
-  price_period: ListingPeriodType;
+  pricePeriod: ListingPeriodType;
 
   @Column({ type: 'enum', enum: CurrencyType, enumName: 'currency_type', default: CurrencyType.RUB })
   currency: CurrencyType;
@@ -42,7 +42,7 @@ export class Listing {
   size?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  photos_json?: any;
+  photosJson?: any;
 
   @Column({ type: 'jsonb', nullable: true })
   amenities?: any;
@@ -54,17 +54,17 @@ export class Listing {
   status: ListingStatus;
 
   @Column({ default: 0 })
-  views_count: number;
+  viewsCount: number;
 
   @Column({ default: 0 })
-  reposts_count: number;
+  repostsCount: number;
 
   @Column({ default: 0 })
-  favorites_count: number;
+  favoritesCount: number;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updatedAt: Date;
 }

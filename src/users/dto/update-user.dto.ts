@@ -5,13 +5,13 @@ export class UpdateUserDto {
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  first_name?: string;
+  firstName?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(50)
-  last_name?: string;
+  lastName?: string;
 
   @IsOptional()
   @IsString()
@@ -31,5 +31,5 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsBoolean()
-  two_fa_enabled?: boolean;
+  twoFaEnabled?: boolean;
 }

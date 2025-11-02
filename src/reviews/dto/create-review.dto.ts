@@ -2,7 +2,7 @@ import { IsInt, IsNumber, Min, Max, IsString, IsOptional, IsNotEmpty } from 'cla
 
 export class CreateReviewDto {
   @IsInt()
-  booking_id: number;
+  bookingId: number;
 
   @IsInt()
   @Min(1)

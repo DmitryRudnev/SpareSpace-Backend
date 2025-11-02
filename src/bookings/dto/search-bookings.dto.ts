@@ -6,7 +6,7 @@ export class SearchBookingsDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  user_id?: number;
+  userId?: number;
 
   @IsOptional()
   @IsEnum(BookingStatus)

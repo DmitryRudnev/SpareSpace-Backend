@@ -49,7 +49,7 @@ export class SubscriptionsService {
   private buildPlansSearchQuery(searchDto: SearchSubscriptionPlansDto) {
     const query = this.planRepository
       .createQueryBuilder('plan')
-      .orderBy('plan.created_at', 'DESC');
+      .orderBy('plan.createdAt', 'DESC');
 
     if (searchDto.name) {
       query.andWhere('plan.name ILIKE :name', { name: `%${searchDto.name}%` });
@@ -112,7 +112,7 @@ export class SubscriptionsService {
   async deletePlan(id: number): Promise<void> {
     const plan = await this.findPlanById(id);
     const activeSubscriptions = await this.subscriptionRepository.count({
-      where: { plan_id: id, status: SubscriptionStatus.ACTIVE },
+      where: { planId: id, status: SubscriptionStatus.ACTIVE },
     });
     if (activeSubscriptions > 0) {
       throw new BadRequestException(
@@ -124,20 +124,15 @@ export class SubscriptionsService {
 
   // Методы для пользовательских подписок
 
-  private buildUserSubscriptionsQuery(
-    userId: number,
-    searchDto: SearchUserSubscriptionsDto,
-  ) {
+  private buildUserSubscriptionsQuery(userId: number, searchDto: SearchUserSubscriptionsDto,) {
     const query = this.subscriptionRepository
       .createQueryBuilder('subscription')
       .leftJoinAndSelect('subscription.plan', 'plan')
       .where('subscription.user_id = :userId', { userId })
-      .orderBy('subscription.created_at', 'DESC');
+      .orderBy('subscription.createdAt', 'DESC');
 
     if (searchDto.status) {
-      query.andWhere('subscription.status = :status', {
-        status: searchDto.status,
-      });
+      query.andWhere('subscription.status = :status', {status: searchDto.status,});
     }
 
     if (searchDto.limit) {
@@ -169,7 +164,7 @@ export class SubscriptionsService {
     const now = new Date();
     const subscription = await this.subscriptionRepository.findOne({
       where: {
-        user_id: userId,
+        userId: userId,
         status: SubscriptionStatus.ACTIVE,
       },
       relations: ['plan'],
@@ -190,7 +185,7 @@ export class SubscriptionsService {
       );
     }
 
-    const plan = await this.findPlanById(dto.plan_id);
+    const plan = await this.findPlanById(dto.planId);
     const price = plan.price;
     const currency = plan.currency;
 
@@ -212,10 +207,10 @@ export class SubscriptionsService {
       endDate.setMonth(endDate.getMonth() + 1); // месячная подписка; адаптировать по плану
 
       const subscription = manager.create(UserSubscription, {
-        user_id: userId,
-        plan_id: dto.plan_id,
-        start_date: startDate,
-        end_date: endDate,
+        userId: userId,
+        planId: dto.planId,
+        startDate: startDate,
+        endDate: endDate,
         status: SubscriptionStatus.ACTIVE,
       });
 
@@ -225,7 +220,7 @@ export class SubscriptionsService {
 
   async cancelSubscription(subscriptionPlanId: number, userId: number) {
     const subscription = await this.subscriptionRepository.findOne({
-      where: { plan_id: subscriptionPlanId, user_id: userId },
+      where: { planId: subscriptionPlanId, userId: userId },
       relations: ['plan'],
     });
 
@@ -240,7 +235,7 @@ export class SubscriptionsService {
     }
 
     subscription.status = SubscriptionStatus.CANCELLED;
-    subscription.end_date = new Date();
+    subscription.endDate = new Date();
     await this.subscriptionRepository.save(subscription);
 
     // Возврат средств, если надо - только в том случае, если ещё не были использованы фичи из подписки и прошло не более 1 дня

@@ -17,24 +17,24 @@ export class UserSubscription {
   id: number;
 
   @Column()
-  user_id: number;
+  userId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column()
-  plan_id: number;
+  planId: number;
 
   @ManyToOne(() => SubscriptionPlan, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'plan_id' })
   plan: SubscriptionPlan;
 
   @Column()
-  start_date: Date;
+  startDate: Date;
 
   @Column({ nullable: true })
-  end_date?: Date;
+  endDate?: Date;
 
   @Column({
     type: 'enum',
@@ -44,8 +44,8 @@ export class UserSubscription {
   status: SubscriptionStatus;
 
   @CreateDateColumn()
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updated_at: Date;
+  updatedAt: Date;
 }

@@ -10,7 +10,7 @@ export class Notification {
   id: number;
 
   @Column()
-  user_id: number;
+  userId: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
@@ -26,11 +26,11 @@ export class Notification {
   channel: NotificationChannel;
 
   @Column({ default: false })
-  is_sent: boolean;
+  isSent: boolean;
 
   @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.UNREAD, })
   status: NotificationStatus;
 
   @CreateDateColumn()
-  created_at: Date;
+  createdAt: Date;
 }

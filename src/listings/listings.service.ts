@@ -59,7 +59,7 @@ export class ListingsService {
     if (searchDto.currency) query.andWhere('listing.currency = :currency', { currency: searchDto.currency });
     if (searchDto.minPrice) query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
     if (searchDto.maxPrice) query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
-    if (searchDto.price_period) query.andWhere('listing.price_period = :price_period', { price_period: searchDto.price_period });
+    if (searchDto.pricePeriod) query.andWhere('listing.price_period = :pricePeriod', { pricePeriod: searchDto.pricePeriod });
     if (searchDto.latitude && searchDto.longitude && searchDto.radius) {
       query.andWhere(
         "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
@@ -85,7 +85,7 @@ export class ListingsService {
 
     const dtoDescription = dto.description ? dto.description : null;
     const dtoSize = dto.size ? dto.size : null;
-    const dtoPhotos = dto.photos_json ? dto.photos_json : null;
+    const dtoPhotos = dto.photosJson ? dto.photosJson : null;
 
     const listingData: any = {
       user: user,
@@ -93,11 +93,11 @@ export class ListingsService {
       title: dto.title,
       description: dtoDescription,
       price: dto.price,
-      price_period: dto.price_period,
+      pricePeriod: dto.pricePeriod,
       currency: dto.currency,
       address: dto.address,
       size: dtoSize,
-      photos_json: dtoPhotos,
+      photosJson: dtoPhotos,
       availability: this.parseAvailability(dto.availability),
     }
     if (dto.latitude && dto.longitude) {
@@ -150,7 +150,7 @@ export class ListingsService {
     if (searchDto?.currency) query.andWhere('listing.currency = :currency', { currency: searchDto.currency });
     if (searchDto?.minPrice) query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
     if (searchDto?.maxPrice) query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
-    if (searchDto?.price_period) query.andWhere('listing.price_period = :price_period', { price_period: searchDto.price_period });
+    if (searchDto?.pricePeriod) query.andWhere('listing.price_period = :pricePeriod', { pricePeriod: searchDto.pricePeriod });
     if (searchDto?.latitude && searchDto?.longitude && searchDto?.radius) {
       query.andWhere(
         "ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)",
@@ -178,13 +178,13 @@ export class ListingsService {
     if (dto.title !== undefined) listing.title = dto.title;
     if (dto.description !== undefined) listing.description = dto.description;
     if (dto.price !== undefined) listing.price = dto.price;
-    if (dto.price_period !== undefined) listing.price_period = dto.price_period;
+    if (dto.pricePeriod !== undefined) listing.pricePeriod = dto.pricePeriod;
     if (dto.currency !== undefined) listing.currency = dto.currency;
     const dtoLocation = this.createLocationPoint(dto);
     if (dtoLocation) listing.location = dtoLocation;
     if (dto.address !== undefined) listing.address = dto.address;
     if (dto.size !== undefined) listing.size = dto.size;
-    if (dto.photos_json !== undefined) listing.photos_json = dto.photos_json;
+    if (dto.photosJson !== undefined) listing.photosJson = dto.photosJson;
     if (dto.amenities !== undefined) listing.amenities = JSON.stringify(dto.amenities);
     if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
     return this.listingRepository.save(listing);

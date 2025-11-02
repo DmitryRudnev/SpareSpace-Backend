@@ -5,10 +5,10 @@ export class UpdateBookingDto {
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  start_date?: Date;
+  startDate?: Date;
 
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  end_date?: Date;
+  endDate?: Date;
 }

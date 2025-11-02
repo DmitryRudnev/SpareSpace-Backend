@@ -27,7 +27,7 @@ export class SearchListingsDto {
 
   @IsOptional()
   @IsEnum(ListingPeriodType)
-  price_period?: ListingPeriodType;
+  pricePeriod?: ListingPeriodType;
 
   @IsOptional()
   @Type(() => Number)

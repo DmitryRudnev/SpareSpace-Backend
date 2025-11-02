@@ -32,7 +32,7 @@ export class CreateListingDto {
   price: number;
 
   @IsEnum(ListingPeriodType)
-  price_period: ListingPeriodType = ListingPeriodType.HOUR;
+  pricePeriod: ListingPeriodType = ListingPeriodType.HOUR;
 
   @IsEnum(CurrencyType)
   currency: CurrencyType = CurrencyType.RUB;
@@ -60,7 +60,7 @@ export class CreateListingDto {
 
   @IsOptional()
   @IsArray()
-  photos_json?: string[];
+  photosJson?: string[];
 
   @IsOptional()
   @IsObject()

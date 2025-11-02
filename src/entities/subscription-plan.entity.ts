@@ -25,20 +25,20 @@ export class SubscriptionPlan {
   currency: CurrencyType;
 
   @Column({ default: 0 })
-  max_listings: number;
+  maxListings: number;
 
   @Column({ default: false })
-  priority_search: boolean;
+  prioritySearch: boolean;
 
   @Column({ default: 0 })
-  boosts_per_month: number;
+  boostsPerMonth: number;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'jsonb', default: {} })
-  extra_features: Record<string, any>;
+  extraFeatures: Record<string, any>;
 
   @CreateDateColumn()
-  created_at: Date;
+  createdAt: Date;
 }

@@ -12,13 +12,13 @@ export class User {
   phone: string;
 
   @Column()
-  password_hash: string;
+  passwordHash: string;
 
   @Column()
-  first_name: string;
+  firstName: string;
 
   @Column()
-  last_name: string;
+  lastName: string;
 
   @Column()
   patronymic?: string;
@@ -27,14 +27,14 @@ export class User {
   rating?: number;
 
   @Column({ default: false })
-  two_fa_enabled: boolean;
+  twoFaEnabled: boolean;
 
   @Column({ default: false })
   verified: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updatedAt: Date;
 }

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import * as path from 'path';
 
 import { AuthModule } from './auth/auth.module';
@@ -41,6 +42,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
         database: configService.get('DATABASE_NAME'),
         entities: [path.join(__dirname, 'entities', '*.entity{.ts,.js}')],
         synchronize: false,
+        namingStrategy: new SnakeNamingStrategy(),
       }),
       inject: [ConfigService],
     }),

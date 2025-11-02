@@ -17,21 +17,20 @@ export class NotificationsService {
   ) {}
 
   private buildSearchQuery(searchDto: SearchNotificationsDto, userId: number) {
-    const query = this.notificationRepository
-      .createQueryBuilder('notifications')
-      .where('notifications.user_id = :userId', { userId })
-      .orderBy('notifications.created_at', 'DESC');
+    const query = this.notificationRepository.createQueryBuilder('notifications')
+      .where({ user: { id: userId } })
+      .orderBy('notifications.createdAt', 'DESC');
 
     if (searchDto.type) {
-      query.andWhere('notifications.type = :type', { type: searchDto.type });
+      query.andWhere({ type: searchDto.type });
     }
 
     if (searchDto.channel) {
-      query.andWhere('notifications.channel = :channel', { channel: searchDto.channel });
+      query.andWhere({ channel: searchDto.channel });
     }
 
     if (searchDto.status) {
-      query.andWhere('notifications.status = :status', { status: searchDto.status });
+      query.andWhere({ status: searchDto.status });
     }
 
     if (searchDto.limit) {
@@ -54,11 +53,11 @@ export class NotificationsService {
     await this.usersService.findById(targetUserId);
 
     const notification = this.notificationRepository.create({
-      user_id: targetUserId,
+      userId: targetUserId,
       type: dto.type,
       content: dto.content,
       channel: dto.channel,
-      is_sent: false,
+      isSent: false,
       status: NotificationStatus.UNREAD,
     });
 
@@ -78,7 +77,7 @@ export class NotificationsService {
 
   async findOne(id: number, userId: number) {
     const notification = await this.notificationRepository.findOne({
-      where: { id, user_id: userId },
+      where: { id, userId: userId },
       relations: ['user'],
     });
 
@@ -93,7 +92,7 @@ export class NotificationsService {
     const targetIds = dto.ids ? [id, ...dto.ids] : [id];
 
     const result = await this.notificationRepository.update(
-      { id: In(targetIds), user_id: userId },
+      { id: In(targetIds), userId: userId },
       { status: NotificationStatus.READ },
     );
 

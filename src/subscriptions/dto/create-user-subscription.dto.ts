@@ -6,5 +6,5 @@ export class CreateUserSubscriptionDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  plan_id: number;
+  planId: number;
 }

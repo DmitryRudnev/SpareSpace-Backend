@@ -5,12 +5,12 @@ export class SearchReviewsDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  to_user_id?: number;
+  toUserId?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  listing_id?: number;
+  listingId?: number;
 
   @IsOptional()
   @Type(() => Number)

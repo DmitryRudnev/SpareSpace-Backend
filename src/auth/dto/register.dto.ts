@@ -4,12 +4,12 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @Length(1, 25)
-  first_name: string;
+  firstName: string;
 
   @IsString()
   @IsNotEmpty()
   @Length(1, 25)
-  last_name: string;
+  lastName: string;
 
   @IsOptional()
   @IsString()

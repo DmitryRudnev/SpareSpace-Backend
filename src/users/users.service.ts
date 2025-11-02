@@ -16,7 +16,7 @@ export class UsersService {
   async findById(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
-      select: ['id', 'first_name', 'last_name', 'patronymic', 'rating', 'created_at', 'verified', 'created_at']
+      select: ['id', 'firstName', 'lastName', 'patronymic', 'rating', 'verified', 'createdAt']
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -25,7 +25,7 @@ export class UsersService {
   async findPrivateProfile(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
-      select: ['id', 'email', 'phone', 'first_name', 'last_name', 'patronymic', 'rating', 'two_fa_enabled', 'verified', 'created_at', 'updated_at'] // все приватные поля
+      select: ['id', 'email', 'phone', 'firstName', 'lastName', 'patronymic', 'rating', 'twoFaEnabled', 'verified', 'createdAt', 'updatedAt'] // все приватные поля
     });
     if (!user) throw new NotFoundException('User not found');
     return user;

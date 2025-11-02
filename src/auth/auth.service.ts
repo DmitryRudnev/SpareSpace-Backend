@@ -45,10 +45,10 @@ export class AuthService {
     const user = this.userRepository.create({
       email: dto.email,
       phone: dto.phone,
-      first_name: dto.first_name,
-      last_name: dto.last_name,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
       patronymic: dto.patronymic,
-      password_hash: hash,
+      passwordHash: hash,
     });
     return this.userRepository.save(user);
   }
@@ -76,7 +76,7 @@ export class AuthService {
     const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     await this.tokenRepository.save({
       user: { id: userId },
-      refresh_token_hash: refreshTokenHash,
+      refreshTokenHash: refreshTokenHash,
       expiry: new Date(Date.now() + this.getRefreshTokenExpiryMs()),
       revoked: false,
     });
@@ -87,7 +87,7 @@ export class AuthService {
     const user = await this.userRepository.findOneBy(where);
     
     if (!user) throw new UnauthorizedException('User not found');
-    if (!(await bcrypt.compare(dto.password, user.password_hash))) 
+    if (!(await bcrypt.compare(dto.password, user.passwordHash))) 
       throw new UnauthorizedException('Invalid password');
 
     return user;
@@ -113,7 +113,7 @@ export class AuthService {
   async refresh(refreshToken: string) {
     const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const token = await this.tokenRepository.findOne({
-      where: { refresh_token_hash: refreshTokenHash },
+      where: { refreshTokenHash: refreshTokenHash },
       relations: ['user']
     });
 
@@ -129,7 +129,7 @@ export class AuthService {
   async logout(refreshToken: string) {
     const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const token = await this.tokenRepository.findOne({
-      where: { refresh_token_hash: refreshTokenHash },
+      where: { refreshTokenHash: refreshTokenHash },
       relations: ['user']
     });
     

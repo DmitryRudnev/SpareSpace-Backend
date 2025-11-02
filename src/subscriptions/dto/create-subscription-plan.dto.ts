@@ -18,15 +18,15 @@ export class CreateSubscriptionPlanDto {
   @Type(() => Number)
   @IsNumber()
   @IsPositive({ message: 'Maximum listings must be positive' })
-  max_listings: number;
+  maxListings: number;
 
   @IsBoolean()
-  priority_search: boolean;
+  prioritySearch: boolean;
 
   @Type(() => Number)
   @IsNumber()
   @IsPositive({ message: 'Boosts per month must be positive' })
-  boosts_per_month: number;
+  boostsPerMonth: number;
 
   @IsOptional()
   @IsString()
@@ -34,5 +34,5 @@ export class CreateSubscriptionPlanDto {
 
   @IsOptional()
   @IsObject()
-  extra_features?: Record<string, any>;
+  extraFeatures?: Record<string, any>;
 }

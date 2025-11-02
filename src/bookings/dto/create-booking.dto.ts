@@ -3,13 +3,13 @@ import { Type } from 'class-transformer';
 
 export class CreateBookingDto {
   @IsInt()
-  listing_id: number;
+  listingId: number;
 
   @Type(() => Date)
   @IsDate()
-  start_date: Date;
+  startDate: Date;
 
   @Type(() => Date)
   @IsDate()
-  end_date: Date;
+  endDate: Date;
 }
