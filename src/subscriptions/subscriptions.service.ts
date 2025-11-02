@@ -1,7 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource, LessThanOrEqual, IsNull, MoreThan } from 'typeorm';
+import {
+  Repository,
+  In,
+  DataSource,
+  LessThanOrEqual,
+  IsNull,
+  MoreThan,
+} from 'typeorm';
 
 import { UsersService } from '../users/users.service';
 import { WalletsService } from '../wallets/wallets.service';
@@ -34,14 +47,18 @@ export class SubscriptionsService {
   // Методы для планов (административные)
 
   private buildPlansSearchQuery(searchDto: SearchSubscriptionPlansDto) {
-    const query = this.planRepository.createQueryBuilder('plan').orderBy('plan.created_at', 'DESC');
+    const query = this.planRepository
+      .createQueryBuilder('plan')
+      .orderBy('plan.created_at', 'DESC');
 
     if (searchDto.name) {
       query.andWhere('plan.name ILIKE :name', { name: `%${searchDto.name}%` });
     }
 
     if (searchDto.currency) {
-      query.andWhere('plan.currency = :currency', { currency: searchDto.currency });
+      query.andWhere('plan.currency = :currency', {
+        currency: searchDto.currency,
+      });
     }
 
     if (searchDto.limit) {
@@ -58,7 +75,7 @@ export class SubscriptionsService {
   async findAllPlans(searchDto: SearchSubscriptionPlansDto) {
     const query = this.buildPlansSearchQuery(searchDto);
     const [plans, total] = await query.getManyAndCount();
-    return { plans, total, limit: searchDto.limit, offset: searchDto.offset }
+    return { plans, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 
   async findPlanById(id: number): Promise<SubscriptionPlan> {
@@ -70,16 +87,23 @@ export class SubscriptionsService {
   }
 
   async createPlan(dto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
-    const existingPlan = await this.planRepository.findOneBy({ name: dto.name });
+    const existingPlan = await this.planRepository.findOneBy({
+      name: dto.name,
+    });
     if (existingPlan) {
-      throw new ConflictException('Subscription plan with this name already exists');
+      throw new ConflictException(
+        'Subscription plan with this name already exists',
+      );
     }
 
     const plan = this.planRepository.create(dto);
     return this.planRepository.save(plan);
   }
 
-  async updatePlan(id: number, dto: UpdateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+  async updatePlan(
+    id: number,
+    dto: UpdateSubscriptionPlanDto,
+  ): Promise<SubscriptionPlan> {
     const plan = await this.findPlanById(id);
     Object.assign(plan, dto);
     return this.planRepository.save(plan);
@@ -91,14 +115,19 @@ export class SubscriptionsService {
       where: { plan_id: id, status: SubscriptionStatus.ACTIVE },
     });
     if (activeSubscriptions > 0) {
-      throw new BadRequestException('Cannot delete plan with active subscriptions');
+      throw new BadRequestException(
+        'Cannot delete plan with active subscriptions',
+      );
     }
     await this.planRepository.remove(plan);
   }
 
   // Методы для пользовательских подписок
 
-  private buildUserSubscriptionsQuery(userId: number, searchDto: SearchUserSubscriptionsDto) {
+  private buildUserSubscriptionsQuery(
+    userId: number,
+    searchDto: SearchUserSubscriptionsDto,
+  ) {
     const query = this.subscriptionRepository
       .createQueryBuilder('subscription')
       .leftJoinAndSelect('subscription.plan', 'plan')
@@ -106,7 +135,9 @@ export class SubscriptionsService {
       .orderBy('subscription.created_at', 'DESC');
 
     if (searchDto.status) {
-      query.andWhere('subscription.status = :status', { status: searchDto.status });
+      query.andWhere('subscription.status = :status', {
+        status: searchDto.status,
+      });
     }
 
     if (searchDto.limit) {
@@ -120,7 +151,10 @@ export class SubscriptionsService {
     return query;
   }
 
-  async findUserSubscriptions(userId: number, searchDto: SearchUserSubscriptionsDto) {
+  async findUserSubscriptions(
+    userId: number,
+    searchDto: SearchUserSubscriptionsDto,
+  ) {
     const query = this.buildUserSubscriptionsQuery(userId, searchDto);
     const [subscriptions, total] = await query.getManyAndCount();
     return {
@@ -146,9 +180,14 @@ export class SubscriptionsService {
   async createSubscription(dto: CreateUserSubscriptionDto, userId: number) {
     const user = await this.usersService.findById(userId);
 
-    const hasLandlordRole = await this.usersService.hasRole(userId, UserRoleType.LANDLORD);
+    const hasLandlordRole = await this.usersService.hasRole(
+      userId,
+      UserRoleType.LANDLORD,
+    );
     if (!hasLandlordRole) {
-      throw new UnauthorizedException('Only landlords can purchase subscriptions');
+      throw new UnauthorizedException(
+        'Only landlords can purchase subscriptions',
+      );
     }
 
     const plan = await this.findPlanById(dto.plan_id);
@@ -162,7 +201,11 @@ export class SubscriptionsService {
 
     return this.dataSource.transaction(async (manager) => {
       const topupDto = { amount: -price, currency, method: 'SUBSCRIPTION' };
-      await this.walletsService.withdraw(userId, { amount: price, currency, destination: 'subscription' });
+      await this.walletsService.withdraw(userId, {
+        amount: price,
+        currency,
+        destination: 'subscription',
+      });
 
       const startDate = new Date();
       const endDate = new Date(startDate);
@@ -191,7 +234,9 @@ export class SubscriptionsService {
     }
 
     if (subscription.status !== SubscriptionStatus.ACTIVE) {
-      throw new BadRequestException('Only active subscriptions can be cancelled');
+      throw new BadRequestException(
+        'Only active subscriptions can be cancelled',
+      );
     }
 
     subscription.status = SubscriptionStatus.CANCELLED;
