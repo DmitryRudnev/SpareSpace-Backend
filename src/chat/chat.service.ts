@@ -105,4 +105,68 @@ export class ChatService {
     const [messages, total] = await query.getManyAndCount();
     return { messages: messages.reverse(), total, limit: dto.limit, offset: dto.offset };
   }
+
+  async getConversationById(conversationId: number, userId: number): Promise<Conversation | null> {
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['participant1', 'participant2'],
+    });
+
+    if (!conversation) {
+      return null;
+    }
+
+    if (conversation.participant1.id !== userId && conversation.participant2.id !== userId) {
+      return null;
+    }
+
+    return conversation;
+  }
+
+  async sendMessage(conversationId: number, senderId: number, text: string): Promise<Message> {
+    const conversation = await this.getConversationById(conversationId, senderId);
+    if (!conversation) {
+      throw new UnauthorizedException('Access denied to this conversation');
+    }
+
+    if (text.length < 1 || text.length > 1000) {
+      throw new BadRequestException('Message text must be between 1 and 1000 characters');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const message = manager.create(Message, {
+        conversation: { id: conversationId },
+        sender: { id: senderId },
+        text,
+        isRead: false,
+      });
+
+      const savedMessage = await manager.save(message);
+
+      // Обновление lastMessageAt в беседе
+      await manager.update(Conversation, conversationId, {
+        lastMessageAt: new Date(),
+      });
+
+      return savedMessage;
+    });
+  }
+
+  async markMessagesAsRead(conversationId: number, userId: number): Promise<void> {
+    const conversation = await this.getConversationById(conversationId, userId);
+    if (!conversation) {
+      throw new UnauthorizedException('Access denied to this conversation');
+    }
+
+    const senderId = conversation.participant1.id === userId ? conversation.participant2.id : conversation.participant1.id;
+
+    await this.messageRepository.update(
+      {
+        conversation: { id: conversationId },
+        sender: { id: senderId },
+        isRead: false,
+      },
+      { isRead: true },
+    );
+  }
 }

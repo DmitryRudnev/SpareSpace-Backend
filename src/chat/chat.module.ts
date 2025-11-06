@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { WsJwtStrategy } from './strategies/ws-jwt.strategy';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
+import { ChatGateway } from './chat.gateway';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { WsJwtGuard } from './guards/ws-jwt.guard';
     AuthModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService, WsJwtStrategy, WsJwtGuard],
+  providers: [ChatService, WsJwtStrategy, WsJwtGuard, ChatGateway],
   exports: [ChatService],
 })
 export class ChatModule {}
