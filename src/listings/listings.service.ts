@@ -33,7 +33,9 @@ export class ListingsService {
   }
 
   private createLocationPoint(dto: CreateListingDto | UpdateListingDto) {
-    if (dto.latitude && dto.longitude) return `POINT(${dto.longitude} ${dto.latitude})`;
+    if (dto.latitude && dto.longitude) {
+      return { type: "Point", coordinates: [dto.longitude, dto.latitude] };
+    }
     return null;
   }
 
@@ -100,8 +102,10 @@ export class ListingsService {
       photosJson: dtoPhotos,
       availability: this.parseAvailability(dto.availability),
     }
-    if (dto.latitude && dto.longitude) {
-      listingData.location = `POINT(${dto.longitude} ${dto.latitude})`;
+    
+    const dtoLocation = this.createLocationPoint(dto);
+    if (dtoLocation) {
+      listingData.location = dtoLocation;
     }
 
     if (dto.amenities) {
@@ -174,20 +178,29 @@ export class ListingsService {
 
   async update(id: number, dto: UpdateListingDto, userId: number) {
     const listing = await this.validateListingOwnership(id, userId);
-    if (dto.type) listing.type = dto.type;
-    if (dto.title !== undefined) listing.title = dto.title;
-    if (dto.description !== undefined) listing.description = dto.description;
-    if (dto.price !== undefined) listing.price = dto.price;
-    if (dto.pricePeriod !== undefined) listing.pricePeriod = dto.pricePeriod;
-    if (dto.currency !== undefined) listing.currency = dto.currency;
+
+    const updatedData: any = {
+      ...listing,
+      ...(dto.type !== undefined && { type: dto.type }),
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.price !== undefined && { price: dto.price }),
+      ...(dto.pricePeriod !== undefined && { pricePeriod: dto.pricePeriod }),
+      ...(dto.currency !== undefined && { currency: dto.currency }),
+      ...(dto.address !== undefined && { address: dto.address }),
+      ...(dto.size !== undefined && { size: dto.size }),
+      ...(dto.photosJson !== undefined && { photosJson: dto.photosJson }),
+      ...(dto.amenities !== undefined && { amenities: JSON.stringify(dto.amenities) }),
+      ...(dto.availability !== undefined && { availability: this.parseAvailability(dto.availability) }),
+    };
+
     const dtoLocation = this.createLocationPoint(dto);
-    if (dtoLocation) listing.location = dtoLocation;
-    if (dto.address !== undefined) listing.address = dto.address;
-    if (dto.size !== undefined) listing.size = dto.size;
-    if (dto.photosJson !== undefined) listing.photosJson = dto.photosJson;
-    if (dto.amenities !== undefined) listing.amenities = JSON.stringify(dto.amenities);
-    if (dto.availability !== undefined) listing.availability = this.parseAvailability(dto.availability);
-    return this.listingRepository.save(listing);
+    if (dtoLocation) {
+      updatedData.location = dtoLocation;
+    }
+
+    const updatedListing = this.listingRepository.create(updatedData);
+    return await this.listingRepository.save(updatedListing);
   }
 
   async remove(id: number, userId: number) {
