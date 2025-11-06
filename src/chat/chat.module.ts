@@ -6,6 +6,8 @@ import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
+import { WsJwtStrategy } from './strategies/ws-jwt.strategy';
+import { WsJwtGuard } from './guards/ws-jwt.guard';
 
 @Module({
   imports: [
@@ -14,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService],
+  providers: [ChatService, WsJwtStrategy, WsJwtGuard],
   exports: [ChatService],
 })
 export class ChatModule {}
