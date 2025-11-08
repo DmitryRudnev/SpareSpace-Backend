@@ -2,7 +2,7 @@ import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validato
 import { ListingType } from '../../common/enums/listing-type.enum';
 import { CurrencyType } from '../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class SearchListingsDto {
   @IsOptional()

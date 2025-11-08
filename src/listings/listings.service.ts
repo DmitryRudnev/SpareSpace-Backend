@@ -81,11 +81,22 @@ export class ListingsService {
     if (dto.photosJson !== undefined) data.photosJson = dto.photosJson;
 
     if (dto.latitude !== undefined && dto.longitude !== undefined) {
-      data.location = { type: 'Point', coordinates: [dto.longitude, dto.latitude], };
+      data.location = { type: 'Point', coordinates: [dto.longitude, dto.latitude] };
     }
 
     if (dto.amenities !== undefined) {
-      data.amenities = typeof dto.amenities === 'object' ? JSON.stringify(dto.amenities) : null;
+      if (typeof dto.amenities === 'object') {
+        data.amenities = dto.amenities;
+      }
+      else if (typeof dto.amenities === 'string') {
+        try {
+          data.amenities = JSON.parse(dto.amenities);
+        } catch {
+          data.amenities = null;
+        }
+      } else {
+        data.amenities = null;
+      }
     }
 
     if (dto.availability !== undefined) {
@@ -98,7 +109,7 @@ export class ListingsService {
   }
 
   /**
-   * Builds a base search query for active listings.
+   * Builds a query with search filters for listings.
    * @param searchDto - The search DTO.
    * @param allowedStatuses - Statuses of listings to be found.
    * @param targetUserId - Optional user ID to filter listings by specific owner.
@@ -109,50 +120,60 @@ export class ListingsService {
       .createQueryBuilder('listing')
       .where('listing.status IN (:...statuses)', { statuses: allowedStatuses })
       .leftJoinAndSelect('listing.user', 'user');
-      if (targetUserId !== undefined) {
-        query.andWhere('listing.user_id = :targetUserId', { targetUserId });
-      }
+    
+    if (targetUserId !== undefined) {
+      query.andWhere('listing.user_id = :targetUserId', { targetUserId });
+    }
 
-    this.applySearchFilters(query, searchDto);
-    query.orderBy('listing.created_at', 'DESC').limit(searchDto.limit).offset(searchDto.offset);
-
-    return query;
-  }
-
-  /**
-   * Applies search filters to a query builder.
-   * @param query - The query builder to modify.
-   * @param dto - The search DTO with filters.
-   * @returns The modified query builder.
-   */
-  private applySearchFilters(query: SelectQueryBuilder<Listing>, dto: SearchListingsDto): SelectQueryBuilder<Listing> {
-    if (dto.type !== undefined) {
-      query.andWhere('listing.type = :type', { type: dto.type });
+    if (searchDto.type !== undefined) {
+      query.andWhere('listing.type = :type', { type: searchDto.type });
     }
-    if (dto.currency !== undefined) {
-      query.andWhere('listing.currency = :currency', { currency: dto.currency });
+    if (searchDto.currency !== undefined) {
+      query.andWhere('listing.currency = :currency', { currency: searchDto.currency });
     }
-    if (dto.minPrice !== undefined) {
-      query.andWhere('listing.price >= :minPrice', { minPrice: dto.minPrice });
+    if (searchDto.minPrice !== undefined) {
+      query.andWhere('listing.price >= :minPrice', { minPrice: searchDto.minPrice });
     }
-    if (dto.maxPrice !== undefined) {
-      query.andWhere('listing.price <= :maxPrice', { maxPrice: dto.maxPrice });
+    if (searchDto.maxPrice !== undefined) {
+      query.andWhere('listing.price <= :maxPrice', { maxPrice: searchDto.maxPrice });
     }
-    if (dto.pricePeriod !== undefined) {
-      query.andWhere('listing.price_period = :pricePeriod', { pricePeriod: dto.pricePeriod });
+    if (searchDto.pricePeriod !== undefined) {
+      query.andWhere('listing.price_period = :pricePeriod', { pricePeriod: searchDto.pricePeriod });
     }
-    if (dto.latitude !== undefined && dto.longitude !== undefined && dto.radius !== undefined) {
+    if (searchDto.latitude !== undefined && searchDto.longitude !== undefined && searchDto.radius !== undefined) {
       query.andWhere(
-        'ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius)',
-        { lon: dto.longitude, lat: dto.latitude, radius: dto.radius / 1000 },
+        'ST_DWithin(listing.location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius)',
+        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius },
       );
     }
-    if (dto.amenities !== undefined && Object.keys(dto.amenities).length > 0) {
-      Object.entries(dto.amenities).forEach(([key, value]) => {
-        const paramName = `value_${key.replace(/\W/g, '_')}`;
-        query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, { [paramName]: value });
-      });
+
+    if (searchDto.amenities !== undefined) {
+      let amenitiesObj: Record<string, string>;
+      
+      if (typeof searchDto.amenities === 'object') {
+        amenitiesObj = searchDto.amenities;
+      } else if (typeof searchDto.amenities === 'string') {
+        try {
+          amenitiesObj = JSON.parse(searchDto.amenities);
+        } catch (error) {
+          return query;
+        }
+      } else {
+        return query;
+      }
+
+      if (Object.keys(amenitiesObj).length > 0) {
+        Object.entries(amenitiesObj).forEach(([key, value]) => {
+          const paramName = `value_${key.replace(/\W/g, '_')}`;
+          query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, { 
+            [paramName]: String(value)
+          });
+        });
+      }
     }
+
+    query.orderBy('listing.created_at', 'DESC').limit(searchDto.limit).offset(searchDto.offset);
+
     return query;
   }
 
