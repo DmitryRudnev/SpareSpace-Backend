@@ -4,6 +4,7 @@ import { ListingType } from '../common/enums/listing-type.enum';
 import { CurrencyType } from '../common/enums/currency-type.enum';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { ListingPeriodType } from '../common/enums/listing-period-type.enum';
+import type { Point } from 'geojson';
 
 @Entity('listings')
 export class Listing {
@@ -21,7 +22,7 @@ export class Listing {
   title: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description?: string | null;
 
   @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
@@ -33,19 +34,19 @@ export class Listing {
   currency: CurrencyType;
 
   @Column({ type: 'geometry', srid: 4326, nullable: true })
-  location?: string;
+  location?: Point | null;
 
   @Column()
   address: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  size?: number;
+  size?: number | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  photosJson?: any;
+  photosJson?: string[] | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  amenities?: any;
+  amenities?: Record<string, string> | null;
 
   @Column({ type: 'tsrange', array: true, default: '{}' })
   availability: string[];

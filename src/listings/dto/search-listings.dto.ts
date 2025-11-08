@@ -51,7 +51,7 @@ export class SearchListingsDto {
 
   @IsOptional()
   @IsObject()
-  amenities?: any;
+  amenities?: Record<string, string>;
 
   @IsOptional()
   @Type(() => Number)

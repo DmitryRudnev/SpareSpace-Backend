@@ -66,7 +66,7 @@ export class CreateListingDto {
 
   @IsOptional()
   @IsObject()
-  amenities?: any;
+  amenities?: Record<string, string>;
 
   @IsOptional()
   @IsArray()

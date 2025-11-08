@@ -1,19 +1,19 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
+import type { Point } from 'geojson';
+
+import { UsersService } from '../users/users.service';
 import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
 import { ViewHistory } from '../entities/view-history.entity';
-import { CreateListingDto } from './dto/create-listing.dto';
-import { AvailabilityPeriodDto } from './dto/create-listing.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
-import { SearchListingsDto } from './dto/search-listings.dto';
-import { UsersService } from '../users/users.service';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
-import { ListingPeriodType } from '../common/enums/listing-period-type.enum';
-import { ListingType } from '../common/enums/listing-type.enum';
-import { CurrencyType } from '../common/enums/currency-type.enum';
+
+import { CreateListingDto } from './dto/create-listing.dto';
+import { AvailabilityPeriodDto } from './dto/create-listing.dto';
+import { SearchListingsDto } from './dto/search-listings.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 
 @Injectable()
 export class ListingsService {
@@ -68,29 +68,29 @@ export class ListingsService {
     dto: CreateListingDto | UpdateListingDto,
     baseData: Partial<Listing> | Listing,
   ): Partial<Listing> {
-    const data: any = { ...baseData };
+    const data: Partial<Listing> = { ...baseData };
 
-    if (dto.type !== undefined) data.type = dto.type;
-    if (dto.title !== undefined) data.title = dto.title;
-    if (dto.description !== undefined) data.description = dto.description;
-    if (dto.price !== undefined) data.price = dto.price;
-    if (dto.pricePeriod !== undefined) { data.pricePeriod = dto.pricePeriod; }
-    if (dto.currency !== undefined) data.currency = dto.currency;
-    if (dto.address !== undefined) data.address = dto.address;
-    if (dto.size !== undefined) data.size = dto.size;
-    if (dto.photosJson !== undefined) data.photosJson = dto.photosJson;
-
+    if (dto.type !== undefined) {data.type = dto.type;}
+    if (dto.title !== undefined) {data.title = dto.title;}
+    if (dto.description !== undefined) {data.description = dto.description;}
+    if (dto.price !== undefined) {data.price = dto.price;}
+    if (dto.pricePeriod !== undefined) {data.pricePeriod = dto.pricePeriod;}
+    if (dto.currency !== undefined) {data.currency = dto.currency;}
+    if (dto.address !== undefined) {data.address = dto.address;}
+    if (dto.size !== undefined) {data.size = dto.size;}
+    if (dto.photosJson !== undefined) {data.photosJson = dto.photosJson;}
     if (dto.latitude !== undefined && dto.longitude !== undefined) {
-      data.location = { type: 'Point', coordinates: [dto.longitude, dto.latitude] };
+      data.location = {
+        type: 'Point' as const,
+        coordinates: [dto.longitude, dto.latitude] as [number, number],
+      } as Point;
     }
-
     if (dto.amenities !== undefined) {
       if (typeof dto.amenities === 'object') {
         data.amenities = dto.amenities;
-      }
-      else if (typeof dto.amenities === 'string') {
+      } else if (typeof dto.amenities === 'string') {
         try {
-          data.amenities = JSON.parse(dto.amenities);
+          data.amenities = JSON.parse(dto.amenities) as Record<string, string>;
         } catch {
           data.amenities = null;
         }
@@ -98,7 +98,6 @@ export class ListingsService {
         data.amenities = null;
       }
     }
-
     if (dto.availability !== undefined) {
       data.availability = dto.availability
         .filter((interval): interval is AvailabilityPeriodDto => interval.start < interval.end)
@@ -115,16 +114,19 @@ export class ListingsService {
    * @param targetUserId - Optional user ID to filter listings by specific owner.
    * @returns The configured query builder.
    */
-  private buildSearchQuery(searchDto: SearchListingsDto, allowedStatuses: ListingStatus[], targetUserId?: number): SelectQueryBuilder<Listing> {
-    let query = this.listingRepository
+  private buildSearchQuery(
+    searchDto: SearchListingsDto,
+    allowedStatuses: ListingStatus[],
+    targetUserId?: number,
+  ): SelectQueryBuilder<Listing> {
+    const query = this.listingRepository
       .createQueryBuilder('listing')
       .where('listing.status IN (:...statuses)', { statuses: allowedStatuses })
       .leftJoinAndSelect('listing.user', 'user');
-    
+
     if (targetUserId !== undefined) {
       query.andWhere('listing.user_id = :targetUserId', { targetUserId });
     }
-
     if (searchDto.type !== undefined) {
       query.andWhere('listing.type = :type', { type: searchDto.type });
     }
@@ -140,38 +142,38 @@ export class ListingsService {
     if (searchDto.pricePeriod !== undefined) {
       query.andWhere('listing.price_period = :pricePeriod', { pricePeriod: searchDto.pricePeriod });
     }
-    if (searchDto.latitude !== undefined && searchDto.longitude !== undefined && searchDto.radius !== undefined) {
+    if (
+      searchDto.latitude !== undefined &&
+      searchDto.longitude !== undefined &&
+      searchDto.radius !== undefined
+    ) {
       query.andWhere(
         'ST_DWithin(listing.location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius)',
         { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius },
       );
     }
-
     if (searchDto.amenities !== undefined) {
       let amenitiesObj: Record<string, string>;
-      
       if (typeof searchDto.amenities === 'object') {
         amenitiesObj = searchDto.amenities;
       } else if (typeof searchDto.amenities === 'string') {
         try {
-          amenitiesObj = JSON.parse(searchDto.amenities);
-        } catch (error) {
+          amenitiesObj = JSON.parse(searchDto.amenities) as Record<string, string>;
+        } catch {
           return query;
         }
       } else {
         return query;
       }
-
       if (Object.keys(amenitiesObj).length > 0) {
         Object.entries(amenitiesObj).forEach(([key, value]) => {
           const paramName = `value_${key.replace(/\W/g, '_')}`;
-          query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, { 
-            [paramName]: String(value)
+          query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, {
+            [paramName]: String(value),
           });
         });
       }
     }
-
     query.orderBy('listing.created_at', 'DESC').limit(searchDto.limit).offset(searchDto.offset);
 
     return query;
@@ -222,9 +224,14 @@ export class ListingsService {
    * @param searchDto - The search DTO.
    * @returns Paginated listings with metadata.
    */
-  async findAll(searchDto: SearchListingsDto): Promise<{ listings: Listing[]; total: number; limit: number; offset: number }> {
+  async findAll(
+    searchDto: SearchListingsDto,
+  ): Promise<{ listings: Listing[]; total: number; limit: number; offset: number }> {
     const allowedStatuses = [ListingStatus.ACTIVE];
-    const [listings, total] = await this.buildSearchQuery(searchDto, allowedStatuses).getManyAndCount();
+    const [listings, total] = await this.buildSearchQuery(
+      searchDto,
+      allowedStatuses,
+    ).getManyAndCount();
     return { listings, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 
@@ -243,14 +250,9 @@ export class ListingsService {
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
-
     if (userId) {
-      await this.viewHistoryRepository.insert({
-        user: { id: userId },
-        listing,
-      });
+      await this.viewHistoryRepository.insert({ user: { id: userId }, listing, });
     }
-
     return listing;
   }
 
@@ -269,9 +271,15 @@ export class ListingsService {
     await this.validateUser(targetUserId);
 
     const isOwner = currentUserId === targetUserId;
-    const allowedStatuses = isOwner ? [ListingStatus.DRAFT, ListingStatus.ACTIVE] : [ListingStatus.ACTIVE];
+    const allowedStatuses = isOwner
+      ? [ListingStatus.DRAFT, ListingStatus.ACTIVE]
+      : [ListingStatus.ACTIVE];
 
-    const [listings, total] = await this.buildSearchQuery(searchDto, allowedStatuses, targetUserId).getManyAndCount();
+    const [listings, total] = await this.buildSearchQuery(
+      searchDto,
+      allowedStatuses,
+      targetUserId,
+    ).getManyAndCount();
     return { listings, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 }
