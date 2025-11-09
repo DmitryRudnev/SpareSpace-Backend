@@ -187,7 +187,7 @@ export class ListingsService {
    */
   async create(dto: CreateListingDto, userId: number): Promise<Listing> {
     const user = await this.validateUser(userId);
-    const listingData = this.prepareListingData(dto, { user });
+    const listingData = this.prepareListingData(dto, { user, status: ListingStatus.ACTIVE });
     const listing = this.listingRepository.create(listingData);
     await this.userService.addRole(userId, UserRoleType.LANDLORD);
     return this.listingRepository.save(listing);
