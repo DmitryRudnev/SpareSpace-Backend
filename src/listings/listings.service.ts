@@ -70,15 +70,15 @@ export class ListingsService {
   ): Partial<Listing> {
     const data: Partial<Listing> = { ...baseData };
 
-    if (dto.type !== undefined) {data.type = dto.type;}
-    if (dto.title !== undefined) {data.title = dto.title;}
-    if (dto.description !== undefined) {data.description = dto.description;}
-    if (dto.price !== undefined) {data.price = dto.price;}
-    if (dto.pricePeriod !== undefined) {data.pricePeriod = dto.pricePeriod;}
-    if (dto.currency !== undefined) {data.currency = dto.currency;}
-    if (dto.address !== undefined) {data.address = dto.address;}
-    if (dto.size !== undefined) {data.size = dto.size;}
-    if (dto.photosJson !== undefined) {data.photosJson = dto.photosJson;}
+    if (dto.type !== undefined) data.type = dto.type;
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.price !== undefined) data.price = dto.price;
+    if (dto.pricePeriod !== undefined) data.pricePeriod = dto.pricePeriod;
+    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.address !== undefined) data.address = dto.address;
+    if (dto.size !== undefined) data.size = dto.size;
+    if (dto.photosJson !== undefined) data.photosJson = dto.photosJson;
     if (dto.latitude !== undefined && dto.longitude !== undefined) {
       data.location = {
         type: 'Point' as const,
@@ -211,12 +211,11 @@ export class ListingsService {
    * Soft-deletes a listing by setting status to INACTIVE.
    * @param listingId - The listing ID.
    * @param userId - The deleting user ID.
-   * @returns The updated listing entity.
    */
-  async remove(listingId: number, userId: number): Promise<Listing> {
+  async remove(listingId: number, userId: number): Promise<void> {
     const listing = await this.validateListingOwnership(listingId, userId);
     listing.status = ListingStatus.INACTIVE;
-    return this.listingRepository.save(listing);
+    await this.listingRepository.save(listing);
   }
 
   /**
