@@ -4,7 +4,7 @@ import { UserRoleType } from '../common/enums/user-role-type.enum';
 
 @Entity('user_roles')
 export class UserRole {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

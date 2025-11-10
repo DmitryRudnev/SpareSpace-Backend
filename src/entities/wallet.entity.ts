@@ -3,7 +3,7 @@ import { User } from './user.entity';
 
 @Entity('wallets')
 export class Wallet {
-  @PrimaryGeneratedColumn('increment')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

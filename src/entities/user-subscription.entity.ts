@@ -13,7 +13,7 @@ import { SubscriptionStatus } from '../common/enums/subscription-status.enum';
 
 @Entity('user_subscriptions')
 export class UserSubscription {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

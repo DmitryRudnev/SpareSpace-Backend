@@ -12,7 +12,7 @@ import { User } from './user.entity';
 
 @Entity('messages')
 export class Message {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => Conversation, { onDelete: 'CASCADE' })

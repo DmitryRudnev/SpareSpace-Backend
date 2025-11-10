@@ -8,7 +8,7 @@ import { CurrencyType } from '../common/enums/currency-type.enum';
 
 @Entity('subscription_plans')
 export class SubscriptionPlan {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ type: 'varchar', length: 100, unique: true })

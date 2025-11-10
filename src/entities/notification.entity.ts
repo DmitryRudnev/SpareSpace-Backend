@@ -6,7 +6,7 @@ import { NotificationStatus } from '../common/enums/notification-status.enum';
 
 @Entity('notifications')
 export class Notification {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

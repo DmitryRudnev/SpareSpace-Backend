@@ -5,7 +5,7 @@ import { CurrencyType } from '../common/enums/currency-type.enum';
 @Entity('wallet_balances')
 @Unique(['wallet', 'currency'])
 export class WalletBalance {
-  @PrimaryGeneratedColumn('increment')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => Wallet, { onDelete: 'CASCADE' })

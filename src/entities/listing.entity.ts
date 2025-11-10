@@ -18,7 +18,7 @@ import { User } from './user.entity';
 
 @Entity('listings')
 export class Listing {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

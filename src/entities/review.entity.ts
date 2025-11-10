@@ -4,7 +4,7 @@ import { Listing } from './listing.entity';
 
 @Entity('reviews')
 export class Review {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => Listing, { onDelete: 'CASCADE' })

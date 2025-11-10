@@ -11,7 +11,7 @@ import { Listing } from './listing.entity';
 
 @Entity('conversations')
 export class Conversation {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

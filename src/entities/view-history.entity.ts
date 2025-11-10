@@ -4,7 +4,7 @@ import { Listing } from './listing.entity';
 
 @Entity('view_history')
 export class ViewHistory {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

@@ -3,7 +3,7 @@ import { User } from './user.entity';
 
 @Entity('user_tokens')
 export class UserToken {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

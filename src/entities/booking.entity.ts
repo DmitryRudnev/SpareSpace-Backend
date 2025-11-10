@@ -6,14 +6,14 @@ import { BookingStatus } from '../common/enums/booking-status.enum';
 
 @Entity('bookings')
 export class Booking {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'listing_id' })
   listing: Listing;
 
-  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'renter_id' })
   renter: User;
 
