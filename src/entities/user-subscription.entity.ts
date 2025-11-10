@@ -24,10 +24,10 @@ export class UserSubscription {
   @JoinColumn({ name: 'plan_id' })
   plan: SubscriptionPlan;
 
-  @Column()
+  @Column({ type: 'timestamptz' })
   startDate: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   endDate: Date | null;
 
   @Column({

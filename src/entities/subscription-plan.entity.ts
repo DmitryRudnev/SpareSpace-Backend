@@ -39,6 +39,6 @@ export class SubscriptionPlan {
   @Column({ type: 'jsonb', nullable: true })
   extraFeatures: Record<string, string> | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

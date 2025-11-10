@@ -28,6 +28,6 @@ export class Notification {
   @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.UNREAD, })
   status: NotificationStatus;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }
