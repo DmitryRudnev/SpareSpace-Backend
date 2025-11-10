@@ -184,8 +184,8 @@ CREATE TABLE subscription_plans (
     priority_search BOOLEAN NOT NULL,
     boosts_per_month INTEGER NOT NULL,  -- Количество доступных поднятий в месяц
     description TEXT,
-    extra_features JSONB  -- Для редко используемых или будущих фич
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    extra_features JSONB,  -- Для редко используемых или будущих фич
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_subscription_plans_name ON subscription_plans(name);
@@ -208,22 +208,6 @@ CREATE INDEX idx_user_subscriptions_plan_id ON user_subscriptions(plan_id);
 
 
 
--- сообщения в чате
-CREATE TABLE messages (
-    id BIGSERIAL PRIMARY KEY,
-    conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    read_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
-CREATE INDEX idx_messages_sender_id ON messages(sender_id);
-
-
-
 -- чат между двумя пользователями по конкретному объявлению
 CREATE TABLE conversations (
     id BIGSERIAL PRIMARY KEY,
@@ -237,6 +221,22 @@ CREATE TABLE conversations (
 CREATE INDEX idx_conversations_participant1_id ON conversations(participant1_id);
 CREATE INDEX idx_conversations_participant2_id ON conversations(participant2_id);
 CREATE INDEX idx_conversations_listing_id ON conversations(listing_id);
+
+
+
+-- сообщения в чате
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 
 
 
