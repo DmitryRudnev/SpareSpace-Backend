@@ -78,8 +78,8 @@ export class SubscriptionsService {
     return { plans, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 
-  async findPlanById(id: number): Promise<SubscriptionPlan> {
-    const plan = await this.planRepository.findOneBy({ id });
+  async findPlanById(planId: number): Promise<SubscriptionPlan> {
+    const plan = await this.planRepository.findOneBy({ id: planId });
     if (!plan) {
       throw new NotFoundException('Subscription plan not found');
     }
@@ -101,18 +101,18 @@ export class SubscriptionsService {
   }
 
   async updatePlan(
-    id: number,
+    planId: number,
     dto: UpdateSubscriptionPlanDto,
   ): Promise<SubscriptionPlan> {
-    const plan = await this.findPlanById(id);
+    const plan = await this.findPlanById(planId);
     Object.assign(plan, dto);
     return this.planRepository.save(plan);
   }
 
-  async deletePlan(id: number): Promise<void> {
-    const plan = await this.findPlanById(id);
+  async deletePlan(planId: number): Promise<void> {
+    const plan = await this.findPlanById(planId);
     const activeSubscriptions = await this.subscriptionRepository.count({
-      where: { planId: id, status: SubscriptionStatus.ACTIVE },
+      where: { plan: { id: planId }, status: SubscriptionStatus.ACTIVE },
     });
     if (activeSubscriptions > 0) {
       throw new BadRequestException(
@@ -164,7 +164,7 @@ export class SubscriptionsService {
     const now = new Date();
     const subscription = await this.subscriptionRepository.findOne({
       where: {
-        userId: userId,
+        user: { id: userId },
         status: SubscriptionStatus.ACTIVE,
       },
       relations: ['plan'],
@@ -218,9 +218,9 @@ export class SubscriptionsService {
     });
   }
 
-  async cancelSubscription(subscriptionPlanId: number, userId: number) {
+  async cancelSubscription(planId: number, userId: number) {
     const subscription = await this.subscriptionRepository.findOne({
-      where: { planId: subscriptionPlanId, userId: userId },
+      where: { plan: { id: planId }, user: { id: userId } },
       relations: ['plan'],
     });
 

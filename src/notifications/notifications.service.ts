@@ -53,7 +53,7 @@ export class NotificationsService {
     await this.usersService.findById(targetUserId);
 
     const notification = this.notificationRepository.create({
-      userId: targetUserId,
+      user: { id: targetUserId },
       type: dto.type,
       content: dto.content,
       channel: dto.channel,
@@ -77,7 +77,7 @@ export class NotificationsService {
 
   async findOne(id: number, userId: number) {
     const notification = await this.notificationRepository.findOne({
-      where: { id, userId: userId },
+      where: { id, user: { id: userId } },
       relations: ['user'],
     });
 
@@ -92,7 +92,7 @@ export class NotificationsService {
     const targetIds = dto.ids ? [id, ...dto.ids] : [id];
 
     const result = await this.notificationRepository.update(
-      { id: In(targetIds), userId: userId },
+      { id: In(targetIds), user: { id: userId } },
       { status: NotificationStatus.READ },
     );
 
