@@ -96,8 +96,10 @@ export class CreateListingDto {
   photosJson?: string[];
 
   @ApiPropertyOptional({
-    type: Object,
+    type: 'object',
+    additionalProperties: { type: 'string' },
     description: 'Удобства в формате {"key": "value"}',
+    example: { "security": "yes", "electricity": "220V" }
   })
   @IsOptional()
   @IsObject()
