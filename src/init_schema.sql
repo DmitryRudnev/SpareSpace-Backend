@@ -55,8 +55,8 @@ CREATE TABLE user_tokens (
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     refresh_token_hash TEXT NOT NULL,
     expiry TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULLDEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULLDEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     revoked BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -178,11 +178,11 @@ CREATE INDEX idx_transactions_created_at ON transactions(created_at);
 CREATE TABLE subscription_plans (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,  -- Название тарифа, например, "Basic", "Pro"
-    price DECIMAL(26,16) NOT NULL DEFAULT 0,
+    price DECIMAL(26,16) NOT NULL,
     currency currency_type NOT NULL DEFAULT 'RUB',
-    max_listings INTEGER NOT NULL DEFAULT 0,
-    priority_search BOOLEAN NOT NULL DEFAULT FALSE,
-    boosts_per_month INTEGER NOT NULL DEFAULT 0,  -- Количество доступных поднятий в месяц
+    max_listings INTEGER NOT NULL,
+    priority_search BOOLEAN NOT NULL,
+    boosts_per_month INTEGER NOT NULL,  -- Количество доступных поднятий в месяц
     description TEXT,
     extra_features JSONB  -- Для редко используемых или будущих фич
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -208,6 +208,22 @@ CREATE INDEX idx_user_subscriptions_plan_id ON user_subscriptions(plan_id);
 
 
 
+-- сообщения в чате
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+
+
+
 -- чат между двумя пользователями по конкретному объявлению
 CREATE TABLE conversations (
     id BIGSERIAL PRIMARY KEY,
@@ -221,21 +237,6 @@ CREATE TABLE conversations (
 CREATE INDEX idx_conversations_participant1_id ON conversations(participant1_id);
 CREATE INDEX idx_conversations_participant2_id ON conversations(participant2_id);
 CREATE INDEX idx_conversations_listing_id ON conversations(listing_id);
-
-
-
-CREATE TABLE messages (
-    id BIGSERIAL PRIMARY KEY,
-    conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    read_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
-CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 
 
 
