@@ -10,6 +10,6 @@ export class Wallet {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

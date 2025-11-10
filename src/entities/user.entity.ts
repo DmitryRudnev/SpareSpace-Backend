@@ -1,4 +1,3 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Entity,
   Column,
@@ -12,55 +11,42 @@ import { UserRole } from './user-role.entity';
 
 @Entity('users')
 export class User {
-  @ApiProperty({ description: 'ID пользователя' })
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ApiProperty({ description: 'Email пользователя', format: 'email' })
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @ApiProperty({ description: 'Телефон пользователя' })
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 20, unique: true })
   phone: string;
 
-  @ApiProperty({ description: 'Хэш пароля' })
-  @Column()
-  passwordHash: string;
-
-  @ApiProperty({ description: 'Имя' })
-  @Column()
+  @Column({ type: 'varchar', length: 50 })
   firstName: string;
 
-  @ApiProperty({ description: 'Фамилия' })
-  @Column()
+  @Column({ type: 'varchar', length: 50 })
   lastName: string;
 
-  @ApiPropertyOptional({ description: 'Отчество' })
-  @Column()
-  patronymic?: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  patronymic: string | null;
 
-  @ApiPropertyOptional({ description: 'Рейтинг пользователя', minimum: 0, maximum: 5 })
+  @Column({ type: 'varchar', length: 255 })
+  passwordHash: string;
+
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
-  rating?: number;
+  rating: number | null;
 
-  @ApiProperty({ description: 'Включена ли двухфакторная аутентификация', default: false })
   @Column({ default: false })
   twoFaEnabled: boolean;
 
-  @ApiProperty({ description: 'Верифицирован ли пользователь', default: false })
   @Column({ default: false })
   verified: boolean;
 
-  @ApiProperty({ description: 'Дата создания', type: Date })
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @ApiProperty({ description: 'Дата последнего обновления', type: Date })
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @ApiProperty({ type: () => UserRole, isArray: true, description: 'Роли пользователя' })
   @OneToMany(() => UserRole, (userRole) => userRole.user)
   userRoles: UserRole[];
 

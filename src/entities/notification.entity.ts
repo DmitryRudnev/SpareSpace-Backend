@@ -9,9 +9,6 @@ export class Notification {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  userId: number;
-
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
@@ -19,7 +16,7 @@ export class Notification {
   @Column({ type: 'enum', enum: NotificationType, })
   type: NotificationType;
 
-  @Column()
+  @Column({ type: 'text' })
   content: string;
 
   @Column({ type: 'enum', enum: NotificationChannel, })

@@ -1,4 +1,3 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { Point } from 'geojson';
 import {
   Entity,
@@ -19,36 +18,25 @@ import { User } from './user.entity';
 
 @Entity('listings')
 export class Listing {
-  @ApiProperty({ description: 'Уникальный идентификатор объявления', example: 1 })
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ApiProperty({ type: () => User, description: 'Владелец объявления' })
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ApiProperty({ enum: ListingType, description: 'Тип помещения', example: ListingType.GARAGE })
   @Column({ type: 'enum', enum: ListingType, enumName: 'listing_type' })
   type: ListingType;
 
-  @ApiProperty({ description: 'Заголовок объявления', example: 'Гараж в центре города' })
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
-  @ApiPropertyOptional({ description: 'Подробное описание', example: 'Просторный гараж с охраной' })
   @Column({ type: 'text', nullable: true })
-  description?: string | null;
+  description: string | null;
 
-  @ApiProperty({ description: 'Цена за период', example: 1500.5 })
   @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
 
-  @ApiProperty({
-    enum: ListingPeriodType,
-    description: 'Период ценообразования',
-    example: ListingPeriodType.DAY,
-  })
   @Column({
     type: 'enum',
     enum: ListingPeriodType,
@@ -57,7 +45,6 @@ export class Listing {
   })
   pricePeriod: ListingPeriodType;
 
-  @ApiProperty({ enum: CurrencyType, description: 'Валюта', example: CurrencyType.RUB })
   @Column({
     type: 'enum',
     enum: CurrencyType,
@@ -66,49 +53,24 @@ export class Listing {
   })
   currency: CurrencyType;
 
-  @ApiPropertyOptional({
-    description: 'Географические координаты',
-    example: { type: 'Point', coordinates: [37.6194, 55.7526] },
-  })
   @Column({ type: 'geometry', srid: 4326, nullable: true })
-  location?: Point | null;
+  location: Point | null;
 
-  @ApiProperty({ description: 'Адрес', example: 'ул. Тверская, 10' })
-  @Column()
+  @Column({ type: 'varchar', length: 500 })
   address: string;
 
-  @ApiPropertyOptional({ description: 'Размер площади (кв.м)', example: 25.5 })
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  size?: number | null;
+  size: number | null;
 
-  @ApiPropertyOptional({
-    type: [String],
-    description: 'Фотографии',
-    example: ['https://example.com/test1.jpg', 'https://example.com/test2.jpg'],
-  })
   @Column({ type: 'jsonb', nullable: true })
-  photosJson?: string[] | null;
+  photosJson: string[] | null;
 
-  @ApiPropertyOptional({
-    description: 'Удобства',
-    example: { electricity: 'true', heating: 'false' },
-  })
   @Column({ type: 'jsonb', nullable: true })
-  amenities?: Record<string, string> | null;
+  amenities: Record<string, string> | null;
 
-  @ApiProperty({
-    type: [String],
-    description: 'Доступные периоды',
-    example: ['[2024-01-01T00:00:00.000Z,2024-01-31T23:59:59.999Z)'],
-  })
-  @Column({ type: 'tsrange', array: true, default: '{}' })
+  @Column({ type: 'tsrange', array: true })
   availability: string[];
 
-  @ApiProperty({
-    enum: ListingStatus,
-    description: 'Статус объявления',
-    example: ListingStatus.ACTIVE,
-  })
   @Column({
     type: 'enum',
     enum: ListingStatus,
@@ -117,23 +79,18 @@ export class Listing {
   })
   status: ListingStatus;
 
-  @ApiProperty({ description: 'Количество просмотров', example: 150 })
   @Column({ default: 0 })
   viewsCount: number;
 
-  @ApiProperty({ description: 'Количество репостов', example: 5 })
   @Column({ default: 0 })
   repostsCount: number;
 
-  @ApiProperty({ description: 'Количество добавлений в избранное', example: 12 })
   @Column({ default: 0 })
   favoritesCount: number;
 
-  @ApiProperty({ description: 'Дата создания', example: '2024-01-01T00:00:00.000Z' })
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @ApiProperty({ description: 'Дата последнего обновления', example: '2024-01-02T00:00:00.000Z' })
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

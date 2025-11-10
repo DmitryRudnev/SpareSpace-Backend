@@ -14,23 +14,20 @@ export class Conversation {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
 
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'participant1_id' })
   participant1: User;
 
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'participant2_id' })
   participant2: User;
 
   @ManyToOne(() => Listing, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'listing_id' })
-  listing?: Listing;
+  listing: Listing | null;
 
-  @Column({
-    type: 'timestamptz',
-    nullable: true,
-  })
-  lastMessageAt?: Date;
+  @Column({ type: 'timestamptz', nullable: true })
+  lastMessageAt: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

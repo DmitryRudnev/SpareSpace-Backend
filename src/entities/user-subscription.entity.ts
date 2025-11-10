@@ -16,15 +16,9 @@ export class UserSubscription {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  userId: number;
-
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @Column()
-  planId: number;
 
   @ManyToOne(() => SubscriptionPlan, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'plan_id' })
@@ -34,7 +28,7 @@ export class UserSubscription {
   startDate: Date;
 
   @Column({ nullable: true })
-  endDate?: Date;
+  endDate: Date | null;
 
   @Column({
     type: 'enum',
@@ -43,9 +37,9 @@ export class UserSubscription {
   })
   status: SubscriptionStatus;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

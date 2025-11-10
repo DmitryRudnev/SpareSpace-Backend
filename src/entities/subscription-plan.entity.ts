@@ -11,10 +11,10 @@ export class SubscriptionPlan {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 100, unique: true })
   name: string;
 
-  @Column('decimal', { precision: 26, scale: 16 })
+  @Column({ type: 'decimal', precision: 26, scale: 16 })
   price: number;
 
   @Column({
@@ -24,20 +24,20 @@ export class SubscriptionPlan {
   })
   currency: CurrencyType;
 
-  @Column({ default: 0 })
+  @Column()
   maxListings: number;
 
-  @Column({ default: false })
+  @Column()
   prioritySearch: boolean;
 
-  @Column({ default: 0 })
+  @Column()
   boostsPerMonth: number;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string | null;
 
-  @Column({ type: 'jsonb', default: {} })
-  extraFeatures: Record<string, any>;
+  @Column({ type: 'jsonb', nullable: true })
+  extraFeatures: Record<string, string> | null;
 
   @CreateDateColumn()
   createdAt: Date;

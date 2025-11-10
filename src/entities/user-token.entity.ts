@@ -10,7 +10,7 @@ export class UserToken {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column()
+  @Column({ type: 'text' })
   refreshTokenHash: string;
 
   @Column({ type: 'timestamptz' })

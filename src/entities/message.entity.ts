@@ -15,24 +15,23 @@ export class Message {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
 
-  @ManyToOne(() => Conversation, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Conversation, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'conversation_id' })
   conversation: Conversation;
 
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sender_id' })
   sender: User;
 
-  @Column({ type: 'text', nullable: false })
+  @Column({ type: 'text' })
   text: string;
 
   @Column({ type: 'boolean', default: false })
-  isRead: boolean = false;
+  isRead: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
   sentAt: Date;
 
-  @Column({ 
-  type: 'timestamptz', nullable: true })
-  readAt?: Date;
+  @Column({ type: 'timestamptz', nullable: true })
+  readAt: Date | null;
 }
