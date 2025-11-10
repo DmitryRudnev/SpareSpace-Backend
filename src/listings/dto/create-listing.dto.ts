@@ -105,10 +105,9 @@ export class CreateListingDto {
   @IsObject()
   amenities?: Record<string, string>;
 
-  @ApiPropertyOptional({ type: [AvailabilityPeriodDto], description: 'Периоды доступности' })
-  @IsOptional()
+  @ApiProperty({ type: [AvailabilityPeriodDto], description: 'Периоды доступности' })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AvailabilityPeriodDto)
-  availability?: AvailabilityPeriodDto[];
+  availability: AvailabilityPeriodDto[];
 }
