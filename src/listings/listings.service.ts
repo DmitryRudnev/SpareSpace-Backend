@@ -10,10 +10,9 @@ import { ViewHistory } from '../entities/view-history.entity';
 import { ListingStatus } from '../common/enums/listing-status.enum';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
 
-import { CreateListingDto } from './dto/create-listing.dto';
-import { AvailabilityPeriodDto } from './dto/create-listing.dto';
-import { SearchListingsDto } from './dto/search-listings.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
+import { CreateListingDto, AvailabilityPeriodDto } from './dto/requests/create-listing.dto';
+import { SearchListingsDto } from './dto/requests/search-listings.dto';
+import { UpdateListingDto } from './dto/requests/update-listing.dto';
 
 @Injectable()
 export class ListingsService {

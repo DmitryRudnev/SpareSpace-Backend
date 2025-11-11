@@ -32,9 +32,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
 import { User } from '../common/decorators/user.decorator';
 
-import { CreateListingDto } from './dto/create-listing.dto';
-import { SearchListingsDto } from './dto/search-listings.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
+import { CreateListingDto } from './dto/requests/create-listing.dto';
+import { SearchListingsDto } from './dto/requests/search-listings.dto';
+import { UpdateListingDto } from './dto/requests/update-listing.dto';
 
 @ApiTags('Listings')
 @Controller('listings')

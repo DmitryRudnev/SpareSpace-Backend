@@ -1,9 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
 
-import { CurrencyType } from '../../common/enums/currency-type.enum';
-import { ListingPeriodType } from '../../common/enums/listing-period-type.enum';
-import { ListingType } from '../../common/enums/listing-type.enum';
+import { CurrencyType } from '../../../common/enums/currency-type.enum';
+import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
+import { ListingType } from '../../../common/enums/listing-type.enum';
 
 export class SearchListingsDto {
   @ApiPropertyOptional({ 
