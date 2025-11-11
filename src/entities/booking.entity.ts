@@ -17,7 +17,7 @@ export class Booking {
   @JoinColumn({ name: 'renter_id' })
   renter: User;
 
-  @Column({ type: 'tsrange' })
+  @Column({ type: 'tstzrange' })
   period: string;
 
   @Column({ type: 'decimal', precision: 26, scale: 16 })

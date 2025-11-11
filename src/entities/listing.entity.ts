@@ -68,7 +68,7 @@ export class Listing {
   @Column({ type: 'jsonb', nullable: true })
   amenities: Record<string, string> | null;
 
-  @Column({ type: 'tsrange', array: true })
+  @Column({ type: 'tstzrange', array: true })
   availability: string[];
 
   @Column({

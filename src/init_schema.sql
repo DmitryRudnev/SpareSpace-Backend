@@ -79,7 +79,7 @@ CREATE TABLE listings (
     size DECIMAL(10,2),
     photos_json JSONB,  -- массив URL в S3
     amenities JSONB,  -- например, { "security": true, "electricity": true }
-    availability tsrange[] NOT NULL,  -- массив периодов доступности
+    availability TSTZRANGE[] NOT NULL,  -- массив периодов доступности
     status listing_status NOT NULL DEFAULT 'DRAFT',
     views_count INTEGER NOT NULL DEFAULT 0,
     reposts_count INTEGER NOT NULL DEFAULT 0,
@@ -100,7 +100,7 @@ CREATE TABLE bookings (
     id BIGSERIAL PRIMARY KEY,
     listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
     renter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    period tsrange NOT NULL,  -- период брони (start_date, end_date)
+    period TSTZRANGE NOT NULL,  -- период брони (start_date, end_date)
     price_total DECIMAL(26,16) NOT NULL,  -- [цена за единицу времени] * [кол-во дней/недель/месяцев]
     currency currency_type NOT NULL DEFAULT 'RUB',
     status booking_status NOT NULL DEFAULT 'PENDING',
