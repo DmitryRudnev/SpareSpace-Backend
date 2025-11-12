@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ListingPublicResponseDto } from './listing-public-response.dto';
+import { ListingResponseDto } from './listing-response.dto';
 
-export class ListingListPublicResponseDto {
-  @ApiProperty({ type: [ListingPublicResponseDto], description: 'Массив объявлений' })
-  listings: ListingPublicResponseDto[];
+export class ListingListResponseDto {
+  @ApiProperty({ type: [ListingResponseDto], description: 'Массив объявлений' })
+  listings: ListingResponseDto[];
 
   @ApiProperty({ type: Number, description: 'Общее количество объявлений', example: 100 })
   total: number;
