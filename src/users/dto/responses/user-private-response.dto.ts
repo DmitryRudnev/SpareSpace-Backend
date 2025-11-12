@@ -2,12 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserPublicResponseDto } from './user-public-response.dto';
 
 export class UserPrivateResponseDto extends UserPublicResponseDto {
-  @ApiProperty({ description: 'Email' })
+  @ApiProperty({ type: String, description: 'Email', example: 'user@example.com' })
   email: string;
 
-  @ApiProperty({ description: 'Телефон' })
+  @ApiProperty({ type: String, description: 'Телефон', example: '+78005553535' })
   phone: string;
 
-  @ApiProperty({ description: 'Включена ли двухфакторная аутентификация' })
+  @ApiProperty({ type: Boolean, description: 'Включена ли двухфакторная аутентификация', example: false })
   twoFaEnabled: boolean;
 }
