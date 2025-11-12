@@ -18,16 +18,11 @@ export class UserMapper {
   }
 
   static toPrivateResponse(user: User): UserPrivateResponseDto {
+    const baseDto = this.toPublicResponse(user);
     const dto = new UserPrivateResponseDto();
     
-    dto.id = user.id;
-    dto.firstName = user.firstName;
-    dto.lastName = user.lastName;
-    dto.patronymic = user.patronymic;
-    dto.rating = user.rating;
-    dto.verified = user.verified;
-    dto.createdAt = user.createdAt;
-
+    Object.assign(dto, baseDto);
+    
     dto.email = user.email;
     dto.phone = user.phone;
     dto.twoFaEnabled = user.twoFaEnabled;
