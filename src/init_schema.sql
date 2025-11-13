@@ -28,8 +28,8 @@ CREATE TABLE users (
     rating DECIMAL(3,2),
     two_fa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -41,7 +41,7 @@ CREATE TABLE user_roles (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role user_role_type NOT NULL,
-    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, role)
 );
 
@@ -54,9 +54,9 @@ CREATE TABLE user_tokens (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     refresh_token_hash TEXT NOT NULL,
-    expiry TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expiry TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     revoked BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -84,8 +84,8 @@ CREATE TABLE listings (
     views_count INTEGER NOT NULL DEFAULT 0,
     reposts_count INTEGER NOT NULL DEFAULT 0,
     favorites_count INTEGER NOT NULL DEFAULT 0,  -- количество пользователей, добавивших в избранное
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_listings_user_id ON listings(user_id);
@@ -104,8 +104,8 @@ CREATE TABLE bookings (
     price_total DECIMAL(26,16) NOT NULL,  -- [цена за единицу времени] * [кол-во дней/недель/месяцев]
     currency currency_type NOT NULL DEFAULT 'RUB',
     status booking_status NOT NULL DEFAULT 'PENDING',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_bookings_listing_id ON bookings(listing_id);
@@ -118,7 +118,7 @@ CREATE INDEX idx_bookings_period ON bookings USING GIST(period);
 CREATE TABLE wallets (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_wallets_user_id ON wallets(user_id);
@@ -147,7 +147,7 @@ CREATE TABLE payments (
     status payment_status NOT NULL DEFAULT 'PENDING',
     gateway_transaction_id VARCHAR(255),  -- для РФ-шлюзов/крипты
     refund_reason TEXT,  -- при возврате
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_payments_booking_id ON payments(booking_id);
@@ -166,7 +166,7 @@ CREATE TABLE transactions (
     commission DECIMAL(26,16) NOT NULL DEFAULT 0,
     description TEXT,
     gateway_transaction_id VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_transactions_wallet_id ON transactions(wallet_id);
@@ -185,7 +185,7 @@ CREATE TABLE subscription_plans (
     boosts_per_month INTEGER NOT NULL,  -- Количество доступных поднятий в месяц
     description TEXT,
     extra_features JSONB,  -- Для редко используемых или будущих фич
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_subscription_plans_name ON subscription_plans(name);
@@ -196,11 +196,11 @@ CREATE TABLE user_subscriptions (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     plan_id BIGINT NOT NULL REFERENCES subscription_plans(id) ON DELETE RESTRICT,
-    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_date TIMESTAMP WITH TIME ZONE,  -- NULL для бессрочных подписок
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ,  -- NULL для бессрочных подписок
     status subscription_status NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_user_subscriptions_user_id ON user_subscriptions(user_id);
@@ -214,8 +214,8 @@ CREATE TABLE conversations (
     participant1_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     participant2_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     listing_id BIGINT REFERENCES listings(id) ON DELETE SET NULL,
-    last_message_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    last_message_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_conversations_participant1_id ON conversations(participant1_id);
@@ -231,8 +231,8 @@ CREATE TABLE messages (
     sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    read_at TIMESTAMP WITH TIME ZONE
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    read_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
@@ -248,7 +248,7 @@ CREATE TABLE notifications (
     channel notification_channel NOT NULL,
     is_sent BOOLEAN NOT NULL DEFAULT FALSE,
     status notification_status NOT NULL DEFAULT 'UNREAD',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
@@ -263,7 +263,7 @@ CREATE TABLE reviews (
     to_user_id BIGINT NOT NULL REFERENCES users(id),
     rating INTEGER NOT NULL,
     text TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_reviews_listing_id ON reviews(listing_id);
@@ -279,8 +279,8 @@ CREATE TABLE questions (
     to_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     answer TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    answered_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    answered_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_questions_listing_id ON questions(listing_id);
@@ -293,7 +293,7 @@ CREATE TABLE view_history (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    viewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_view_history_user_id ON view_history(user_id);
@@ -305,7 +305,7 @@ CREATE TABLE reposts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, listing_id)
 );
 
@@ -318,7 +318,7 @@ CREATE TABLE favorites (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, listing_id)
 );
 
@@ -334,7 +334,7 @@ CREATE TABLE moderation_logs (
     admin_id BIGINT NOT NULL REFERENCES users(id) ON DELETE SET NULL,  -- администратор, выполнивший действие
     action moderation_action NOT NULL,
     reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_moderation_logs_entity_type ON moderation_logs(entity_type);
@@ -349,7 +349,7 @@ CREATE TABLE audit_logs (
     entity_id BIGINT,  -- ID сущности, если применимо
     details JSONB,  -- Дополнительные данные (например, старые/новые значения)
     ip_address INET,  -- Опционально
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
