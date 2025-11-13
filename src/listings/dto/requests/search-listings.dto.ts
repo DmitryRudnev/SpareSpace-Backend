@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject, ValidateNested } from 'class-validator';
 
 import { CurrencyType } from '../../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
@@ -46,7 +47,7 @@ export class SearchListingsDto {
   @Min(0)
   maxPrice?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     enum: ListingPeriodType, 
     description: 'Период ценообразования',
     example: ListingPeriodType.DAY
@@ -57,23 +58,10 @@ export class SearchListingsDto {
 
   @ApiPropertyOptional({ 
     type: Number, 
-    minimum: -90, 
-    maximum: 90, 
-    description: 'Широта',
-    example: 55.7558
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(-90)
-  @Max(90)
-  latitude?: number;
-
-  @ApiPropertyOptional({ 
-    type: Number, 
     minimum: -180, 
     maximum: 180, 
     description: 'Долгота',
-    example: 37.6173
+    example: 37.2106
   })
   @IsOptional()
   @IsNumber()
@@ -83,9 +71,22 @@ export class SearchListingsDto {
 
   @ApiPropertyOptional({ 
     type: Number, 
+    minimum: -90, 
+    maximum: 90, 
+    description: 'Широта',
+    example: 55.9833
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @ApiPropertyOptional({ 
+    type: Number, 
     minimum: 0, 
     description: 'Радиус поиска в метрах',
-    example: 1000
+    example: 100
   })
   @IsOptional()
   @IsNumber()
@@ -93,9 +94,12 @@ export class SearchListingsDto {
   radius?: number;
 
   @ApiPropertyOptional({
-    type: Object,
+    type: 'object',
+    additionalProperties: { 
+      type: 'string' 
+    },
     description: 'Удобства в формате {"ключ": "значение"}',
-    example: `{ "security": "true", "electricity": "220V" }`,
+    example: { "security": "true", "electricity": "220V" }
   })
   @IsOptional()
   @IsObject()

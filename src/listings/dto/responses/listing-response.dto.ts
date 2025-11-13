@@ -10,7 +10,7 @@ export class ListingResponseDto {
   id: number;
 
   @ApiProperty({ type: UserPublicResponseDto, description: 'Пользователь, создавший объявление' })
-  user: UserPublicResponseDto
+  user: UserPublicResponseDto;
 
   @ApiProperty({ enum: ListingStatus, description: 'Статус объявления', example: ListingStatus.ACTIVE })
   status: ListingStatus;

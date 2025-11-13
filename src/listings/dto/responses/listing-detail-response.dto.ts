@@ -1,26 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ListingResponseDto } from './listing-response.dto';
 
-class Point {
-  @ApiProperty({ type: Number, description: 'Широта', example: 55.7558 })
-  latitude: number;
-
-  @ApiProperty({ type: Number, description: 'Долгота', example: 37.6173 })
+export class LocationDto {
+  @ApiProperty({ type: Number, description: 'Долгота', example: 37.2091 })
   longitude: number;
+
+  @ApiProperty({ type: Number, description: 'Широта', example: 55.9832 })
+  latitude: number;
 }
 
-class AvailabilityPeriodDto {
+export class AvailabilityPeriodDto {
   @ApiProperty({
     type: String,
     description: 'Дата начала доступности (ISO8601)',
-    example: '2024-01-01T00:00:00.000Z',
+    example: '2025-01-01T00:00:00.000Z'
   })
   start: string;
 
   @ApiProperty({
     type: String,
     description: 'Дата окончания доступности (ISO8601)',
-    example: '2024-01-10T00:00:00.000Z',
+    example: '2025-02-01T00:00:00.000Z'
   })
   end: string;
 }
@@ -32,10 +32,10 @@ export class ListingDetailResponseDto extends ListingResponseDto {
   @ApiPropertyOptional({ type: Number, description: 'Размер в квадратных метрах', example: 5.5 })
   size: number | null;
 
-  @ApiPropertyOptional({ type: Point, description: 'Координаты места' })
-  location: Point | null;
+  @ApiPropertyOptional({ type: LocationDto, description: 'Координаты места' })
+  location: LocationDto | null;
 
-  @ApiPropertyOptional({ type: 'object', additionalProperties: { type: 'string' }, description: 'Удобства', example: { 'security': 'true', 'electricity': '220V' } })
+  @ApiPropertyOptional({ type: 'object', additionalProperties: { type: 'string' }, description: 'Удобства в формате {"ключ": "значение"}', example: { "security": "true", "electricity": "220V" } })
   amenities: Record<string, string> | null;
 
   @ApiProperty({ type: AvailabilityPeriodDto, isArray: true, description: 'Периоды доступности' })
