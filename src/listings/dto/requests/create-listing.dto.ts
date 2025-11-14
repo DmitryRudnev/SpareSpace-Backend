@@ -61,7 +61,7 @@ export class CreateListingDto {
   @ApiProperty({
     enum: ListingType,
     description: 'Тип объявления',
-    example: ListingType.PARKING
+    example: ListingType.PARKING,
   })
   @IsEnum(ListingType)
   type: ListingType;
@@ -157,15 +157,14 @@ export class CreateListingDto {
     type: 'object',
     additionalProperties: { type: 'string' },
     description: 'Удобства в формате {"ключ": "значение"}',
-    example: { "security": "true", "electricity": "220V" }
+    example: { security: 'true', electricity: '220V' }
   })
   @IsOptional()
   @IsObject()
   amenities?: Record<string, string>;
 
   @ApiProperty({
-    type: AvailabilityPeriodDto,
-    isArray: true,
+    type: [AvailabilityPeriodDto],
     description: 'Периоды доступности'
   })
   @IsArray()

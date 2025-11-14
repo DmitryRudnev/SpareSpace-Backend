@@ -13,4 +13,4 @@ export class ListingListResponseDto {
 
   @ApiProperty({ type: Number, description: 'Смещение', example: 0 })
   offset: number;
-} 
+}

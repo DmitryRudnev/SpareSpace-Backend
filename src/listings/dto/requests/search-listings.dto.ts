@@ -1,14 +1,22 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, Min, Max, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  Min,
+  Max,
+  IsObject,
+  ValidateNested
+} from 'class-validator';
 
 import { CurrencyType } from '../../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
 import { ListingType } from '../../../common/enums/listing-type.enum';
 
 export class SearchListingsDto {
-  @ApiPropertyOptional({ 
-    enum: ListingType, 
+  @ApiPropertyOptional({
+    enum: ListingType,
     description: 'Тип объявления',
     example: ListingType.PARKING
   })
@@ -16,8 +24,8 @@ export class SearchListingsDto {
   @IsEnum(ListingType)
   type?: ListingType;
 
-  @ApiPropertyOptional({ 
-    enum: CurrencyType, 
+  @ApiPropertyOptional({
+    enum: CurrencyType,
     description: 'Валюта',
     example: CurrencyType.RUB
   })
@@ -25,9 +33,9 @@ export class SearchListingsDto {
   @IsEnum(CurrencyType)
   currency?: CurrencyType;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: 0, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 0,
     description: 'Минимальная цена',
     example: 1000
   })
@@ -36,9 +44,9 @@ export class SearchListingsDto {
   @Min(0)
   minPrice?: number;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: 0, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 0,
     description: 'Максимальная цена',
     example: 5000
   })
@@ -48,7 +56,7 @@ export class SearchListingsDto {
   maxPrice?: number;
 
   @ApiPropertyOptional({
-    enum: ListingPeriodType, 
+    enum: ListingPeriodType,
     description: 'Период ценообразования',
     example: ListingPeriodType.DAY
   })
@@ -56,10 +64,10 @@ export class SearchListingsDto {
   @IsEnum(ListingPeriodType)
   pricePeriod?: ListingPeriodType;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: -180, 
-    maximum: 180, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: -180,
+    maximum: 180,
     description: 'Долгота',
     example: 37.2106
   })
@@ -69,10 +77,10 @@ export class SearchListingsDto {
   @Max(180)
   longitude?: number;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: -90, 
-    maximum: 90, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: -90,
+    maximum: 90,
     description: 'Широта',
     example: 55.9833
   })
@@ -82,9 +90,9 @@ export class SearchListingsDto {
   @Max(90)
   latitude?: number;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: 0, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 0,
     description: 'Радиус поиска в метрах',
     example: 100
   })
@@ -95,20 +103,18 @@ export class SearchListingsDto {
 
   @ApiPropertyOptional({
     type: 'object',
-    additionalProperties: { 
-      type: 'string' 
-    },
+    additionalProperties: { type: 'string' },
     description: 'Удобства в формате {"ключ": "значение"}',
-    example: { "security": "true", "electricity": "220V" }
+    example: { security: 'true', electricity: '220V' }
   })
   @IsOptional()
   @IsObject()
   amenities?: Record<string, string>;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: 1, 
-    default: 10, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 1,
+    default: 10,
     description: 'Лимит записей',
     example: 10
   })
@@ -117,10 +123,10 @@ export class SearchListingsDto {
   @Min(1)
   limit: number = 10;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
-    minimum: 0, 
-    default: 0, 
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: 0,
+    default: 0,
     description: 'Смещение',
     example: 0
   })
