@@ -14,9 +14,11 @@ export class RegisterDto {
   @Length(1, 50)
   patronymic?: string;
 
+  @IsString()
   @IsPhoneNumber()
   phone: string;
 
+  @IsString()
   @IsEmail()
   email: string;
 

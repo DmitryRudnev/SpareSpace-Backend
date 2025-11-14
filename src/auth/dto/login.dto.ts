@@ -2,10 +2,12 @@ import { IsOptional, IsPhoneNumber, IsEmail, IsString, Length } from 'class-vali
 
 export class LoginDto {
   @IsOptional()
+  @IsString()
   @IsPhoneNumber()
   phone?: string;
 
   @IsOptional()
+  @IsString()
   @IsEmail()
   email?: string;
 
