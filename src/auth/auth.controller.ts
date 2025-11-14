@@ -1,41 +1,102 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { AtLeastOneFieldPipe } from './pipes/at-least-one-field.pipe';
+import { Controller, Post, Body, HttpCode, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiNoContentResponse, ApiUnauthorizedResponse, ApiBadRequestResponse, ApiConflictResponse } from '@nestjs/swagger';
 
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/requests/login.dto';
+import { RegisterDto } from './dto/requests/register.dto';
+import { TokenOperationDto } from './dto/requests/token-operation.dto';
+import { CheckPhoneDto } from './dto/requests/check-phone.dto';
+import { AuthResponseDto } from './dto/responses/auth-response.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
+
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
   @HttpCode(201)
-  async register(@Body() dto: RegisterDto) {
+  @ApiOperation({
+    summary: 'Регистрация пользователя',
+    description: 'Создает нового пользователя и возвращает токены доступа'
+  })
+  @ApiBody({ type: RegisterDto, description: 'Данные для регистрации' })
+  @ApiCreatedResponse({ 
+    description: 'Пользователь успешно зарегистрирован', 
+    type: AuthResponseDto 
+  })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  @ApiConflictResponse({ description: 'Email или телефон уже существуют' })
+  async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(dto);
   }
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body(AtLeastOneFieldPipe) dto: LoginDto) {
+  @ApiOperation({
+    summary: 'Вход в систему',
+    description: 'Аутентификация пользователя по email/телефону и паролю'
+  })
+  @ApiBody({ type: LoginDto, description: 'Данные для входа' })
+  @ApiOkResponse({ 
+    description: 'Успешная аутентификация', 
+    type: AuthResponseDto 
+  })
+  @ApiUnauthorizedResponse({ description: 'Неверные учетные данные' })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(dto);
   }
 
   @Post('check-phone-login')
   @HttpCode(200)
-  async checkPhoneLogin(@Body('phone') phone: string) {
-    return this.authService.checkPhoneLogin(phone);
+  @ApiOperation({
+    summary: 'Проверка телефона для входа',
+    description: 'Проверяет, существует ли пользователь с указанным телефоном'
+  })
+  @ApiBody({ type: CheckPhoneDto, description: 'Телефон для проверки' })
+  @ApiOkResponse({ 
+    description: 'Результат проверки телефона',
+    schema: {
+      type: 'object',
+      properties: {
+        exists: { type: 'boolean', example: true }
+      }
+    }
+  })
+  @ApiBadRequestResponse({ description: 'Некорректный номер телефона' })
+  async checkPhoneLogin(@Body() dto: CheckPhoneDto): Promise<{ exists: boolean }> {
+    return this.authService.checkPhoneLogin(dto.phone);
   }
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refresh(refreshToken);
+  @ApiOperation({
+    summary: 'Обновление токенов',
+    description: 'Обновляет access и refresh токены'
+  })
+  @ApiBody({ type: TokenOperationDto, description: 'Refresh токен' })
+  @ApiOkResponse({ 
+    description: 'Токены успешно обновлены', 
+    type: AuthResponseDto 
+  })
+  @ApiUnauthorizedResponse({ description: 'Неверный или просроченный токен' })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  async refresh(@Body() dto: TokenOperationDto): Promise<AuthResponseDto> {
+    return this.authService.refresh(dto.refreshToken);
   }
 
   @Post('logout')
   @HttpCode(204)
-  async logout(@Body('refreshToken') refreshToken: string) {
-    return this.authService.logout(refreshToken);
+  @ApiOperation({
+    summary: 'Выход из системы',
+    description: 'Инвалидирует refresh токен'
+  })
+  @ApiBody({ type: TokenOperationDto, description: 'Refresh токен для инвалидации' })
+  @ApiNoContentResponse({ description: 'Успешный выход из системы' })
+  @ApiUnauthorizedResponse({ description: 'Неверный токен' })
+  @ApiConflictResponse({ description: 'Токен уже отозван' })
+  async logout(@Body() dto: TokenOperationDto): Promise<void> {
+    return this.authService.logout(dto.refreshToken);
   }
 }
