@@ -1,57 +1,105 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Delete, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+} from '@nestjs/swagger';
+
 import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto/requests/update-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { UserRoleType } from '../common/enums/user-role-type.enum';
+import { UserMapper } from './mappers/user.mapper';
 
+import { UpdateUserDto } from './dto/requests/update-user.dto';
+import { UserPublicResponseDto } from './dto/responses/user-public-response.dto';
+import { UserPrivateResponseDto } from './dto/responses/user-private-response.dto';
+
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly userService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findById(+id);
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Получение публичного профиля пользователя',
+    description: 'Возвращает публичные данные пользователя по ID. Аутентификация не требуется.'
+  })
+  @ApiParam({ name: 'id', description: 'ID пользователя', type: Number })
+  @ApiOkResponse({
+    description: 'Публичный профиль пользователя',
+    type: UserPublicResponseDto
+  })
+  @ApiNotFoundResponse({ description: 'Пользователь не найден' })
+  async findOne(@Param('id') id: string): Promise<UserPublicResponseDto> {
+    const user = await this.usersService.findById(+id);
+    return UserMapper.toPublicResponseDto(user);
   }
+
 
   @UseGuards(JwtAuthGuard)
   @Get('profile/me')
-  getMyProfile(@User('userId') currentUserId: number) {
-    return this.userService.findPrivateProfile(currentUserId);
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Получение собственного профиля',
+    description: 'Возвращает полные данные профиля текущего пользователя. Требует аутентификации.'
+  })
+  @ApiOkResponse({
+    description: 'Приватный профиль пользователя',
+    type: UserPrivateResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
+  @ApiNotFoundResponse({ description: 'Пользователь не найден' })
+  async getMyProfile(@User('userId') currentUserId: number): Promise<UserPrivateResponseDto> {
+    const user = await this.usersService.findById(currentUserId);
+    return UserMapper.toPrivateResponseDto(user);
   }
+
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @User('userId') currentUserId: number) {
-    if (+id !== currentUserId) throw new UnauthorizedException('Access denied');
-    return this.userService.update(+id, updateUserDto);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoleType.ADMIN)
-  @Get(':id/roles')
-  getRoles(@Param('id') id: string) {
-    return this.userService.getUserRoles(+id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoleType.ADMIN)
-  @Post(':id/roles')
-  addRole(@Param('id') id: string, @Body('role') role: string) {
-    return this.userService.addRole(+id, role as UserRoleType);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRoleType.ADMIN)
-  @Delete(':id/roles/:role')
-  removeRole(@Param('id') id: string, @Param('role') role: string) {
-    return this.userService.removeRole(+id, role as UserRoleType);
-  }
-
-  @Get(':id/rating')
-  getRating(@Param('id') id: string) {
-    return this.userService.getAvgRating(+id);
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Обновление профиля пользователя',
+    description: 'Обновляет данные профиля. Требует аутентификации и владения профилем.'
+  })
+  @ApiParam({ name: 'id', description: 'ID пользователя для обновления', type: Number })
+  @ApiBody({ type: UpdateUserDto, description: 'Данные для обновления' })
+  @ApiOkResponse({
+    description: 'Профиль успешно обновлен',
+    type: UserPrivateResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Не авторизован или доступ запрещен' })
+  @ApiNotFoundResponse({ description: 'Пользователь не найден' })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  @ApiConflictResponse({ description: 'Email или телефон уже используется' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @User('userId') currentUserId: number
+  ): Promise<UserPrivateResponseDto> {
+    if (+id !== currentUserId) {
+      throw new UnauthorizedException('Access denied');
+    }
+    const user = await this.usersService.update(+id, updateUserDto);
+    return UserMapper.toPrivateResponseDto(user);
   }
 }
