@@ -87,7 +87,6 @@ export class ListingsService {
     if (dto.availability !== undefined) {
       data.availability = dto.availability.map((interval) => `[${interval.start},${interval.end})`);
     }
-
     return data;
   }
 
@@ -157,7 +156,12 @@ export class ListingsService {
     const user = await this.validateUser(userId);
     const listingData = this.prepareListingData(createDto, { user, status: ListingStatus.ACTIVE });
     const listing = this.listingRepository.create(listingData);
-    await this.userService.addRole(userId, UserRoleType.LANDLORD);
+
+    const hasLandlordRole = await this.userService.hasRole(userId, UserRoleType.LANDLORD);
+    if (!hasLandlordRole) {
+      await this.userService.addRole(userId, UserRoleType.LANDLORD);
+    }
+
     return this.listingRepository.save(listing);
   }
 

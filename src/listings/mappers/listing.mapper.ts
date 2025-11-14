@@ -74,7 +74,7 @@ export class ListingMapper {
       throw new Error(`Failed to parse availability with type '${typeof listing.availability}'`);
     }
     dto.availability = availabilityArray.map(intervalStr => {
-      const cleanStr = intervalStr.replace(/[\[)]/g, '');
+      const cleanStr = intervalStr.replace(/[\[\)]/g, '');
       const parts = cleanStr.split(',').map(date => date.trim());
       if (parts.length !== 2) {
         throw new Error(`Availability range contains more than 2 dates: ${parts}`);
