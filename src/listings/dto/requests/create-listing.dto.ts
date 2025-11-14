@@ -1,22 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsString,
-  IsEnum,
-  IsNumber,
   IsOptional,
+  IsString,
+  IsNumber,
   IsArray,
-  IsDate,
+  IsObject,
+  IsEnum,
+  IsISO8601,
+  IsUrl,
   Min,
   Max,
-  IsObject,
-  ValidateNested,
+  Length,
   MinLength,
   MaxLength,
   ArrayMinSize,
   ArrayMaxSize,
-  IsUrl,
-  IsISO8601,
+  ValidateNested,
 } from 'class-validator';
 
 import { CurrencyType } from '../../../common/enums/currency-type.enum';
@@ -74,8 +74,7 @@ export class CreateListingDto {
     example: 'Просторный паркинг в центре'
   })
   @IsString()
-  @MinLength(1)
-  @MaxLength(255)
+  @Length(1, 255)
   title: string;
 
   @ApiPropertyOptional({
@@ -126,8 +125,7 @@ export class CreateListingDto {
     example: 'Москва, ул. Пушкина, д. Колотушкина'
   })
   @IsString()
-  @MinLength(1)
-  @MaxLength(500)
+  @Length(1, 500)
   address: string;
 
   @ApiPropertyOptional({

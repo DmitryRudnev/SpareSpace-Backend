@@ -97,9 +97,9 @@ export class ListingResponseDto {
   favoritesCount: number;
 
   @ApiProperty({
-    type: Date,
-    description: 'Дата создания объявления',
+    type: String,
+    description: 'Дата создания объявления (ISO8601)',
     example: '2024-01-01T00:00:00.000Z'
   })
-  createdAt: Date;
+  createdAt: string;
 }

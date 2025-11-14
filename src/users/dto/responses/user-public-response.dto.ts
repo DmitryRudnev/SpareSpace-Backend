@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserPublicResponseDto {
-  @ApiProperty({ type: 'number', description: 'ID пользователя', example: 1 })
+  @ApiProperty({ type: Number, description: 'ID пользователя', example: 1 })
   id: number;
 
   @ApiProperty({ type: String, description: 'Имя', example: 'Иван' })
@@ -19,6 +19,6 @@ export class UserPublicResponseDto {
   @ApiProperty({ type: Boolean, description: 'Верифицирован ли пользователь', example: true })
   verified: boolean;
 
-  @ApiProperty({ type: String, description: 'Дата создания', example: '2024-01-01T00:00:00.000Z' })
-  createdAt: Date;
+  @ApiProperty({ type: String, description: 'Дата создания (ISO8601)', example: '2024-01-01T00:00:00.000Z' })
+  createdAt: string;
 }

@@ -12,7 +12,7 @@ export class UserMapper {
     dto.patronymic = user.patronymic;
     dto.rating = user.rating;
     dto.verified = user.verified;
-    dto.createdAt = user.createdAt;
+    dto.createdAt = new Date(user.createdAt).toISOString();
 
     return dto;
   }

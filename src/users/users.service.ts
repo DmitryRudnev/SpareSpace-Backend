@@ -37,18 +37,14 @@ export class UsersService {
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
     if (dto.patronymic !== undefined) user.patronymic = dto.patronymic;
     if (dto.phone !== undefined) user.phone = dto.phone;
-    
-    if (await this.hasRole(userId, UserRoleType.ADMIN)) {
-        if (dto.verified !== undefined) user.verified = dto.verified;
-        if (dto.twoFaEnabled !== undefined) user.twoFaEnabled = dto.twoFaEnabled;
-    }
+    if (dto.email !== undefined) user.email = dto.email;
     return this.userRepository.save(user);
   }
 
   async getUserRoles(id: number) {
     const roles = await this.userRoleRepository.find({
       where: { user: { id } },
-      select: ['role'],
+      select: ['role']
     });
     return roles.map(r => r.role);
   }

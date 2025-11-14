@@ -21,7 +21,7 @@ export class ListingMapper {
     dto.viewsCount = listing.viewsCount;
     dto.repostsCount = listing.repostsCount;
     dto.favoritesCount = listing.favoritesCount;
-    dto.createdAt = listing.createdAt;
+    dto.createdAt = new Date(listing.createdAt).toISOString();
 
     return dto;
   }
@@ -73,7 +73,6 @@ export class ListingMapper {
     else {
       throw new Error(`Failed to parse availability with type '${typeof listing.availability}'`);
     }
-
     dto.availability = availabilityArray.map(intervalStr => {
       const cleanStr = intervalStr.replace(/[\[)]/g, '');
       const parts = cleanStr.split(',').map(date => date.trim());
