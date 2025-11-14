@@ -17,12 +17,9 @@ import { SearchListingsDto } from './dto/requests/search-listings.dto';
 @Injectable()
 export class ListingsService {
   constructor(
-    @InjectRepository(Listing)
-    private readonly listingRepository: Repository<Listing>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(ViewHistory)
-    private readonly viewHistoryRepository: Repository<ViewHistory>,
+    @InjectRepository(Listing) private readonly listingRepository: Repository<Listing>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(ViewHistory) private readonly viewHistoryRepository: Repository<ViewHistory>,
     private readonly userService: UsersService,
   ) {}
 
@@ -49,7 +46,7 @@ export class ListingsService {
   private async validateListingOwnership(listingId: number, userId: number): Promise<Listing> {
     const listing = await this.listingRepository.findOne({
       where: { id: listingId, user: { id: userId } },
-      relations: ['user'],
+      relations: ['user']
     });
     if (!listing) {
       throw new UnauthorizedException('Not authorized to modify this listing');
@@ -65,7 +62,7 @@ export class ListingsService {
    */
   private prepareListingData(
     dto: CreateListingDto | UpdateListingDto,
-    baseData: Partial<Listing> | Listing,
+    baseData: Partial<Listing> | Listing
   ): Partial<Listing> {
     const data: Partial<Listing> = { ...baseData };
 
@@ -104,7 +101,7 @@ export class ListingsService {
   private buildSearchQuery(
     searchDto: SearchListingsDto,
     allowedStatuses: ListingStatus[],
-    targetUserId?: number,
+    targetUserId?: number
   ): SelectQueryBuilder<Listing> {
     const query = this.listingRepository
       .createQueryBuilder('listing')
@@ -136,15 +133,13 @@ export class ListingsService {
     ) {
       query.andWhere(
         'ST_DWithin(listing.location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius)',
-        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius },
+        { lon: searchDto.longitude, lat: searchDto.latitude, radius: searchDto.radius }
       );
     }
     if (searchDto.amenities !== undefined) {
         Object.entries(searchDto.amenities).forEach( ([key, value]) => {
           const paramName = `value_${key.replace(/\W/g, '_')}`;
-          query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, {
-            [paramName]: String(value),
-          });
+          query.andWhere(`listing.amenities ->> '${key}' = :${paramName}`, { [paramName]: String(value) });
         });
     }
     query.orderBy('listing.created_at', 'DESC').limit(searchDto.limit).offset(searchDto.offset);
@@ -202,7 +197,7 @@ export class ListingsService {
     const allowedStatuses = [ListingStatus.ACTIVE];
     const [listings, total] = await this.buildSearchQuery(
       searchDto,
-      allowedStatuses,
+      allowedStatuses
     ).getManyAndCount();
     return { listings, total, limit: searchDto.limit, offset: searchDto.offset };
   }
@@ -238,7 +233,7 @@ export class ListingsService {
   async findByUser(
     targetUserId: number,
     searchDto: SearchListingsDto,
-    currentUserId?: number,
+    currentUserId?: number
   ): Promise<{ listings: Listing[]; total: number; limit: number; offset: number }> {
     await this.validateUser(targetUserId);
 
