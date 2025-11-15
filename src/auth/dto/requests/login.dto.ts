@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ValidateIf, IsPhoneNumber, IsEmail, IsString, Length } from 'class-validator';
+import { Validate, IsOptional, IsPhoneNumber, IsEmail, IsString, Length } from 'class-validator';
+import { EmailOrPhoneValidator } from '../../validators/email-or-phone.validator';
 
 export class LoginDto {
   @ApiPropertyOptional({
@@ -7,7 +8,7 @@ export class LoginDto {
     description: 'Телефон',
     example: '+78005553535'
   })
-  @ValidateIf(o => !o.email)
+  @IsOptional()
   @IsString()
   @IsPhoneNumber()
   phone?: string;
@@ -17,7 +18,7 @@ export class LoginDto {
     description: 'Email',
     example: 'user@example.com'
   })
-  @ValidateIf(o => !o.phone)
+  @IsOptional()
   @IsString()
   @IsEmail()
   email?: string;
@@ -32,4 +33,7 @@ export class LoginDto {
   @IsString()
   @Length(8, 100)
   password: string;
+
+  @Validate(EmailOrPhoneValidator)
+  readonly emailOrPhone: string;
 }
