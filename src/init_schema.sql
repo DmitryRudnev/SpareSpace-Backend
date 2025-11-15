@@ -101,7 +101,7 @@ CREATE TABLE bookings (
     listing_id BIGINT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
     renter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     period TSTZRANGE NOT NULL,  -- период брони (start_date, end_date)
-    price_total DECIMAL(26,16) NOT NULL,  -- [цена за единицу времени] * [кол-во дней/недель/месяцев]
+    total_price DECIMAL(26,16) NOT NULL,  -- [цена за единицу времени] * [кол-во дней/недель/месяцев]
     currency currency_type NOT NULL DEFAULT 'RUB',
     status booking_status NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

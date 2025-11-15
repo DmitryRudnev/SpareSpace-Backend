@@ -21,7 +21,7 @@ export class Booking {
   period: string;
 
   @Column({ type: 'decimal', precision: 26, scale: 16 })
-  priceTotal: number;
+  totalPrice: number;
 
   @Column({ type: 'enum', enum: CurrencyType, enumName: 'currency_type', default: CurrencyType.RUB })
   currency: CurrencyType;

@@ -19,6 +19,6 @@ export class UserPublicResponseDto {
   @ApiProperty({ type: Boolean, description: 'Верифицирован ли пользователь', example: true })
   verified: boolean;
 
-  @ApiProperty({ type: String, description: 'Дата создания (ISO8601)', example: '2024-01-01T00:00:00.000Z' })
+  @ApiProperty({ type: String, description: 'Дата создания (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
   createdAt: string;
 }
