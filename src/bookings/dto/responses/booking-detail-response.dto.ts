@@ -1,0 +1,45 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { ListingResponseDto } from '../../../listings/dto/responses/listing-response.dto';
+import { CurrencyType } from '../../../common/enums/currency-type.enum';
+import { BookingStatus } from '../../../common/enums/booking-status.enum';
+import { UserPublicResponseDto } from '../../../users/dto/responses/user-public-response.dto';
+
+export class BookingPeriodDto {
+  @ApiProperty({ type: String, description: 'Дата начала (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
+  start: string;
+
+  @ApiProperty({ type: String, description: 'Дата окончания (ISO8601)', example: '2025-02-01T00:00:00.000Z' })
+  end: string;
+}
+
+export class BookingDetailResponseDto {
+  @ApiProperty({ type: Number, description: 'ID бронирования', example: 1 })
+  id: number;
+  
+  @ApiProperty({ type: ListingResponseDto, description: 'Полное объявление' })
+  listing: ListingResponseDto;
+
+  @ApiProperty({ type: UserPublicResponseDto, description: 'Арендатор' })
+  renter: UserPublicResponseDto;
+
+  @ApiProperty({ type: UserPublicResponseDto, description: 'Владелец объявления' })
+  landlord: UserPublicResponseDto;
+
+  @ApiProperty({ type: Number, description: 'Общая цена', example: 15000 })
+  totalPrice: number;
+
+  @ApiProperty({ enum: CurrencyType, description: 'Валюта', example: CurrencyType.RUB })
+  currency: CurrencyType;
+
+  @ApiProperty({ enum: BookingStatus, description: 'Статус бронирования', example: BookingStatus.PENDING })
+  status: BookingStatus;
+
+  @ApiProperty({ type: BookingPeriodDto, description: 'Период бронирования' })
+  period: BookingPeriodDto;
+
+  @ApiProperty({ type: String, description: 'Дата создания (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
+  createdAt: string;
+
+  @ApiProperty({ type: String, description: 'Дата обновления (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
+  updatedAt: string;
+}

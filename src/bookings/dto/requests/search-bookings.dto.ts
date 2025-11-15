@@ -1,35 +1,33 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, IsEnum, IsOptional, Min, IsPositive } from 'class-validator';
-import { BookingStatus } from '../../common/enums/booking-status.enum';
+import { IsInt, IsEnum, IsOptional, Min } from 'class-validator';
+import { BookingStatus } from '../../../common/enums/booking-status.enum';
+import { UserRoleType } from '../../../common/enums/user-role-type.enum';
 
 export class SearchBookingsDto {
   @ApiPropertyOptional({
-    type: Number,
-    description: 'ID пользователя',
-    example: 1,
-    minimum: 1,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  userId?: number;
-
-  @ApiPropertyOptional({
     enum: BookingStatus,
     description: 'Статус бронирования',
-    example: BookingStatus.CONFIRMED,
+    example: BookingStatus.CONFIRMED
   })
   @IsOptional()
   @IsEnum(BookingStatus)
   status?: BookingStatus;
+
+  @ApiPropertyOptional({
+    enum: UserRoleType,
+    description: 'Роль пользователя в бронировании',
+    example: UserRoleType.RENTER,
+  })
+  @IsOptional()
+  @IsEnum(UserRoleType)
+  userRole?: UserRoleType;
   
   @ApiPropertyOptional({
     type: Number,
     description: 'Лимит записей',
     minimum: 1,
     default: 10,
-    example: 10,
+    example: 10
   })
   @IsOptional()
   @IsInt()
@@ -41,7 +39,7 @@ export class SearchBookingsDto {
     description: 'Смещение',
     minimum: 0,
     default: 0,
-    example: 0,
+    example: 0
   })
   @IsOptional()
   @IsInt()

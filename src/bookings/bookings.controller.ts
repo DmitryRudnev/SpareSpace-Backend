@@ -27,14 +27,15 @@ import {
 } from '@nestjs/swagger';
 
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
-import { ChangeStatusDto } from './dto/change-status.dto';
-import { SearchBookingsDto } from './dto/search-bookings.dto';
+import { CreateBookingDto } from './dto/requests/create-booking.dto';
+import { UpdateBookingPeriodDto } from './dto/requests/update-booking-period.dto';
+import { UpdateBookingStatusDto } from './dto/requests/update-booking-status.dto';
+import { SearchBookingsDto } from './dto/requests/search-bookings.dto';
 import { User } from '../common/decorators/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AtLeastOneFieldPipe } from './pipes/at-least-one-field.pipe';
-import { Booking } from '../entities/booking.entity';
+import { BookingDetailResponseDto } from './dto/responses/booking-detail-response.dto';
+import { BookingListResponseDto } from './dto/responses/booking-list-response.dto';
+import { BookingMapper } from './mappers/booking.mapper';
 
 @ApiTags('Bookings')
 @Controller('bookings')
@@ -48,104 +49,118 @@ export class BookingsController {
   @HttpCode(201)
   @ApiOperation({
     summary: 'Создание нового бронирования',
-    description:
-      'Создаёт бронирование на основе предоставленных данных. Требует аутентификации и роли арендатора.',
+    description: 'Создаёт бронирование на основе предоставленных данных. Требует аутентификации и наличия роли арендатора.'
   })
   @ApiBody({ type: CreateBookingDto, description: 'Данные для создания бронирования' })
-  @ApiCreatedResponse({ description: 'Бронирование успешно создано', type: Booking })
+  @ApiCreatedResponse({ description: 'Бронирование успешно создано', type: BookingDetailResponseDto })
   @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
   @ApiConflictResponse({ description: 'Конфликт: объект недоступен для бронирования' })
   async create(
     @Body() createBookingDto: CreateBookingDto,
-    @User('userId') userId: number,
-  ): Promise<Booking> {
-    return this.bookingsService.create(createBookingDto, userId);
+    @User('userId') userId: number
+  ): Promise<BookingDetailResponseDto> {
+    const booking = await this.bookingsService.create(createBookingDto, userId);
+    return BookingMapper.toDetailResponseDto(booking);
   }
 
   @Get()
+  @HttpCode(200)
   @ApiOperation({
-    summary: 'Получение списка бронирований с поиском',
-    description: 'Возвращает список бронирований с фильтрацией по статусу. Требует аутентификации.',
+    summary: 'Получение списка бронирований',
+    description: 'Возвращает список бронирований текущего пользователя с заданными фильтрами. Требует аутентификации.'
   })
   @ApiQuery({
     name: 'searchDto',
     type: SearchBookingsDto,
     required: false,
-    description: 'Критерии поиска (статус, пагинация)',
+    description: 'Критерии поиска (статус, пагинация)'
   })
   @ApiOkResponse({
     description: 'Список бронирований пользователя',
-    type: [Booking],
+    type: BookingListResponseDto
   })
   async findAll(
     @Query() searchDto: SearchBookingsDto, 
     @User('userId') userId: number
-    ): Promise<{ bookings: Booking[]; total: number; limit: number; offset: number; }> {
-    return this.bookingsService.findAll(searchDto, userId);
+  ): Promise<BookingListResponseDto> {
+    const result = await this.bookingsService.findAll(searchDto, userId);
+    return BookingMapper.toListResponseDto(
+      result.bookings,
+      result.total,
+      result.limit,
+      result.offset
+    );
   }
 
   @Get(':id')
+  @HttpCode(200)
   @ApiOperation({
     summary: 'Получение одного бронирования',
-    description:
-      'Возвращает детали бронирования по ID. Требует аутентификации и участия в бронировании.',
+    description: 'Возвращает детали бронирования по ID. Требует аутентификации и участия в бронировании.'
   })
   @ApiParam({ name: 'id', description: 'ID бронирования', type: Number })
-  @ApiOkResponse({ description: 'Бронирование найдено', type: Booking })
+  @ApiOkResponse({ description: 'Бронирование найдено', type: BookingDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Бронирование не найдено' })
-  async findOne(@Param('id') id: string): Promise<Booking> {
-    return this.bookingsService.findOne(+id);
+  async findById(
+    @Param('id') id: string,
+    @User('userId') userId: number
+  ): Promise<BookingDetailResponseDto> {
+    const booking = await this.bookingsService.findById(+id, userId);
+    return BookingMapper.toDetailResponseDto(booking);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @ApiOperation({
     summary: 'Обновление бронирования',
-    description:
-      'Обновляет существующее бронирование. Только для арендатора и только pending-бронирований.',
+    description: 'Изменяет период существующего бронирования. Только для арендатора и только pending-бронирований.'
   })
   @ApiParam({ name: 'id', description: 'ID бронирования для обновления', type: Number })
-  @ApiBody({ type: UpdateBookingDto, description: 'Данные для обновления' })
-  @ApiOkResponse({ description: 'Бронирование успешно обновлено', type: Booking })
+  @ApiBody({ type: UpdateBookingPeriodDto, description: 'Данные для обновления' })
+  @ApiOkResponse({ description: 'Бронирование успешно обновлено', type: BookingDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Бронирование не найдено' })
   @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
   @ApiConflictResponse({ description: 'Конфликт: объект недоступен для новых дат' })
   async update(
     @Param('id') id: string,
-    @Body(AtLeastOneFieldPipe) updateBookingDto: UpdateBookingDto,
-    @User('userId') userId: number,
-  ): Promise<Booking> {
-    return this.bookingsService.update(+id, updateBookingDto, userId);
+    @Body() updateBookingDto: UpdateBookingPeriodDto,
+    @User('userId') userId: number
+  ): Promise<BookingDetailResponseDto> {
+    const booking = await this.bookingsService.update(+id, updateBookingDto, userId);
+    return BookingMapper.toDetailResponseDto(booking);
   }
 
   @Patch(':id/status')
+  @HttpCode(200)
   @ApiOperation({
     summary: 'Изменение статуса бронирования',
-    description: 'Изменяет статус бронирования. Только для владельца объекта.',
+    description: 'Изменяет статус бронирования. Только для владельца объекта.'
   })
   @ApiParam({ name: 'id', description: 'ID бронирования', type: Number })
-  @ApiBody({ type: ChangeStatusDto, description: 'Новый статус бронирования' })
-  @ApiOkResponse({ description: 'Статус успешно изменён', type: Booking })
+  @ApiBody({ type: UpdateBookingStatusDto, description: 'Новый статус бронирования' })
+  @ApiOkResponse({ description: 'Статус успешно изменён', type: BookingDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Бронирование не найдено' })
   @ApiBadRequestResponse({ description: 'Некорректный статус или операция' })
-  async changeStatus(
+  async updateStatus(
     @Param('id') id: string,
-    @Body() changeStatusDto: ChangeStatusDto,
-    @User('userId') userId: number,
-  ): Promise<Booking> {
-    return this.bookingsService.changeStatus(+id, changeStatusDto.status, userId);
+    @Body() changeStatusDto: UpdateBookingStatusDto,
+    @User('userId') userId: number
+  ): Promise<BookingDetailResponseDto> {
+    const booking = await this.bookingsService.updateStatus(+id, changeStatusDto.status, userId);
+    return BookingMapper.toDetailResponseDto(booking);
   }
 
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Отмена бронирования',
-    description: 'Выполняет отмену бронирования. Доступно для арендатора или владельца объекта.',
+    description: 'Выполняет отмену бронирования. Доступно для арендатора или владельца объекта.'
   })
   @ApiParam({ name: 'id', description: 'ID бронирования для отмены', type: Number })
   @ApiNoContentResponse({ description: 'Бронирование успешно отменено' })
   @ApiNotFoundResponse({ description: 'Бронирование не найдено' })
   @ApiBadRequestResponse({ description: 'Невозможно отменить бронирование' })
-  async remove(@Param('id') id: string, @User('userId') userId: number): Promise<void> {
-    await this.bookingsService.remove(+id, userId);
+  async remove(@Param('id') bookingId: string, @User('userId') userId: number): Promise<void> {
+    await this.bookingsService.remove(+bookingId, userId);
   }
 }
