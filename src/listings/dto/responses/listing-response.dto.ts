@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CurrencyType } from '../../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
 import { ListingType } from '../../../common/enums/listing-type.enum';
-import { UserPublicResponseDto } from '../../../users/dto/responses/user-public-response.dto';
 import { ListingStatus } from '../../../common/enums/listing-status.enum';
 
 export class ListingResponseDto {
@@ -12,12 +11,6 @@ export class ListingResponseDto {
     example: 1 
   })
   id: number;
-
-  @ApiProperty({ 
-    type: UserPublicResponseDto, 
-    description: 'Пользователь, создавший объявление' 
-  })
-  user: UserPublicResponseDto;
 
   @ApiProperty({
     enum: ListingStatus,
@@ -69,11 +62,11 @@ export class ListingResponseDto {
   address: string;
 
   @ApiPropertyOptional({
-    type: [String],
-    description: 'Массив URL фотографий',
-    example: ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg']
+    type: String,
+    description: 'URL первой фотографии',
+    example: 'https://example.com/photo1.jpg'
   })
-  photosJson: string[] | null;
+  firstPhotoUrl: string | null;
 
   @ApiProperty({ 
     type: Number, 
@@ -99,7 +92,7 @@ export class ListingResponseDto {
   @ApiProperty({
     type: String,
     description: 'Дата создания объявления (ISO8601)',
-    example: '2024-01-01T00:00:00.000Z'
+    example: '2025-01-01T00:00:00.000Z'
   })
   createdAt: string;
 }

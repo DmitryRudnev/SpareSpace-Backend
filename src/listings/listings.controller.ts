@@ -158,7 +158,7 @@ export class ListingsController {
     @Param('id') id: string, 
     @User('userId') userId?: number
   ): Promise<ListingDetailResponseDto> {
-    const listing = await this.listingsService.findOne(+id, userId);
+    const listing = await this.listingsService.findById(+id, userId);
     return ListingMapper.toDetailResponseDto(listing);
   }
 
