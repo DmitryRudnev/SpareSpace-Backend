@@ -9,6 +9,7 @@ export class ListingMapper {
     const dto = new ListingResponseDto();
 
     dto.id = listing.id;
+    dto.user = UserMapper.toPublicResponseDto(listing.user);
     dto.status = listing.status;
     dto.title = listing.title;
     dto.type = listing.type;
@@ -46,6 +47,7 @@ export class ListingMapper {
     dto.repostsCount = listing.repostsCount;
     dto.favoritesCount = listing.favoritesCount;
     dto.createdAt = new Date(listing.createdAt).toISOString();
+    dto.updatedAt = new Date(listing.updatedAt).toISOString();
 
     if (listing.location?.coordinates) {
       dto.location = {
@@ -84,7 +86,7 @@ export class ListingMapper {
   ): ListingListResponseDto {
     const dto = new ListingListResponseDto();
 
-    dto.listings = listings.map(listing => this.toResponseDto(listing));
+    dto.listings = listings.map(listing => this.toDetailResponseDto(listing));
     dto.total = total;
     dto.limit = limit;
     dto.offset = offset;

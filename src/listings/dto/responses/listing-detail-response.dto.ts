@@ -160,4 +160,11 @@ export class ListingDetailResponseDto {
     example: '2025-01-01T00:00:00.000Z'
   })
   createdAt: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Дата обновления объявления (ISO8601)',
+    example: '2025-01-02T00:00:00.000Z'
+  })
+  updatedAt: string;
 }

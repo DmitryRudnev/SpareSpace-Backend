@@ -3,6 +3,7 @@ import { CurrencyType } from '../../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
 import { ListingType } from '../../../common/enums/listing-type.enum';
 import { ListingStatus } from '../../../common/enums/listing-status.enum';
+import { UserPublicResponseDto } from '../../../users/dto/responses/user-public-response.dto';
 
 export class ListingResponseDto {
   @ApiProperty({ 
@@ -11,6 +12,12 @@ export class ListingResponseDto {
     example: 1 
   })
   id: number;
+  
+  @ApiProperty({ 
+    type: UserPublicResponseDto, 
+    description: 'Пользователь, создавший объявление' 
+  })
+  user: UserPublicResponseDto;
 
   @ApiProperty({
     enum: ListingStatus,
