@@ -45,24 +45,6 @@ import { BookingMapper } from './mappers/booking.mapper';
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
-  @Post()
-  @HttpCode(201)
-  @ApiOperation({
-    summary: 'Создание нового бронирования',
-    description: 'Создаёт бронирование на основе предоставленных данных. Требует аутентификации и наличия роли арендатора.'
-  })
-  @ApiBody({ type: CreateBookingDto, description: 'Данные для создания бронирования' })
-  @ApiCreatedResponse({ description: 'Бронирование успешно создано', type: BookingDetailResponseDto })
-  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
-  @ApiConflictResponse({ description: 'Конфликт: объект недоступен для бронирования' })
-  async create(
-    @Body() createBookingDto: CreateBookingDto,
-    @User('userId') userId: number
-  ): Promise<BookingDetailResponseDto> {
-    const booking = await this.bookingsService.create(createBookingDto, userId);
-    return BookingMapper.toDetailResponseDto(booking);
-  }
-
   @Get()
   @HttpCode(200)
   @ApiOperation({
@@ -92,6 +74,7 @@ export class BookingsController {
     );
   }
 
+
   @Get(':id')
   @HttpCode(200)
   @ApiOperation({
@@ -108,6 +91,26 @@ export class BookingsController {
     const booking = await this.bookingsService.findById(+id, userId);
     return BookingMapper.toDetailResponseDto(booking);
   }
+
+
+  @Post()
+  @HttpCode(201)
+  @ApiOperation({
+    summary: 'Создание нового бронирования',
+    description: 'Создаёт бронирование на основе предоставленных данных. Требует аутентификации и наличия роли арендатора.'
+  })
+  @ApiBody({ type: CreateBookingDto, description: 'Данные для создания бронирования' })
+  @ApiCreatedResponse({ description: 'Бронирование успешно создано', type: BookingDetailResponseDto })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  @ApiConflictResponse({ description: 'Конфликт: объект недоступен для бронирования' })
+  async create(
+    @Body() createBookingDto: CreateBookingDto,
+    @User('userId') userId: number
+  ): Promise<BookingDetailResponseDto> {
+    const booking = await this.bookingsService.create(createBookingDto, userId);
+    return BookingMapper.toDetailResponseDto(booking);
+  }
+
 
   @Patch(':id')
   @HttpCode(200)
@@ -130,6 +133,7 @@ export class BookingsController {
     return BookingMapper.toDetailResponseDto(booking);
   }
 
+
   @Patch(':id/status')
   @HttpCode(200)
   @ApiOperation({
@@ -150,6 +154,7 @@ export class BookingsController {
     return BookingMapper.toDetailResponseDto(booking);
   }
 
+  
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({

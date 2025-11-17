@@ -30,34 +30,6 @@ export class BookingsService {
   ) {}
 
   /**
-   * Creates a new booking.
-   * @param dto - The creation DTO.
-   * @param userId - The creating user ID.
-   * @returns The saved booking entity.
-   */
-  async create(dto: CreateBookingDto, userId: number): Promise<Booking> {
-    const startDate = new Date(dto.period.start);
-    const endDate = new Date(dto.period.end);
-    this.validateBookingDates(startDate, endDate);
-    const renter = await this.validateRenter(userId);
-    const listing = await this.validateListing(dto.listingId);
-    await this.validateListingAvailability(listing.id, startDate, endDate);
-
-    const duration = this.calculateDuration(startDate, endDate, listing.pricePeriod);
-    const totalPrice = listing.price * duration;
-    const period = `[${startDate.toISOString()},${endDate.toISOString()})`;
-    const booking = this.bookingRepository.create({
-      listing,
-      renter,
-      period,
-      totalPrice,
-      currency: listing.currency,
-      status: BookingStatus.PENDING
-    });
-    return this.bookingRepository.save(booking);
-  }
-
-  /**
    * Retrieves bookings with search filters.
    * @param searchDto - The search DTO.
    * @param userId - The user ID for filtering.
@@ -90,6 +62,34 @@ export class BookingsService {
       throw new UnauthorizedException('Not authorized to cancel this booking');
     }
     return booking;
+  }
+
+  /**
+   * Creates a new booking.
+   * @param dto - The creation DTO.
+   * @param userId - The creating user ID.
+   * @returns The saved booking entity.
+   */
+  async create(dto: CreateBookingDto, userId: number): Promise<Booking> {
+    const startDate = new Date(dto.period.start);
+    const endDate = new Date(dto.period.end);
+    this.validateBookingDates(startDate, endDate);
+    const renter = await this.validateRenter(userId);
+    const listing = await this.validateListing(dto.listingId);
+    await this.validateListingAvailability(listing.id, startDate, endDate);
+
+    const duration = this.calculateDuration(startDate, endDate, listing.pricePeriod);
+    const totalPrice = listing.price * duration;
+    const period = `[${startDate.toISOString()},${endDate.toISOString()})`;
+    const booking = this.bookingRepository.create({
+      listing,
+      renter,
+      period,
+      totalPrice,
+      currency: listing.currency,
+      status: BookingStatus.PENDING
+    });
+    return this.bookingRepository.save(booking);
   }
 
   /**
@@ -248,25 +248,6 @@ export class BookingsService {
   }
 
   /**
-   * Calculates booking duration based on price period.
-   * @param start - Start date.
-   * @param end - End date.
-   * @param pricePeriod - The price period unit.
-   * @returns Calculated duration.
-   * @throws BadRequestException for invalid price period.
-   */
-  private calculateDuration(start: Date, end: Date, pricePeriod: string): number {
-    const durationMs = end.getTime() - start.getTime();
-    switch (pricePeriod) {
-      case 'HOUR':  return Math.ceil(durationMs / (1000 * 60 * 60));
-      case 'DAY':   return Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-      case 'WEEK':  return Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 7));
-      case 'MONTH': return Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 30));
-      default: throw new BadRequestException('Invalid price period');
-    }
-  }
-
-  /**
    * Builds search query for bookings with filters.
    * @param searchDto - The search DTO.
    * @param userId - The user ID for filtering.
@@ -292,14 +273,31 @@ export class BookingsService {
       default:
         query.where('(booking.renter.id = :userId OR listing.user.id = :userId)', { userId });
     }
-
     if (searchDto.status) {
       query.andWhere('booking.status = :status', { status: searchDto.status });
     }
-
     return query
       .orderBy('booking.created_at', 'DESC')
       .limit(searchDto.limit)
       .offset(searchDto.offset);
+  }
+
+  /**
+   * Calculates booking duration based on price period.
+   * @param start - Start date.
+   * @param end - End date.
+   * @param pricePeriod - The price period unit.
+   * @returns Calculated duration.
+   * @throws BadRequestException for invalid price period.
+   */
+  private calculateDuration(start: Date, end: Date, pricePeriod: string): number {
+    const durationMs = end.getTime() - start.getTime();
+    switch (pricePeriod) {
+      case 'HOUR':  return Math.ceil(durationMs / (1000 * 60 * 60));
+      case 'DAY':   return Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+      case 'WEEK':  return Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 7));
+      case 'MONTH': return Math.ceil(durationMs / (1000 * 60 * 60 * 24 * 30));
+      default: throw new BadRequestException('Invalid price period');
+    }
   }
 }

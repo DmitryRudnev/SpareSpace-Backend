@@ -64,6 +64,17 @@ export class AuthService {
   }
 
   /**
+   * Checks if a phone number is registered for login
+   * @param phone - Phone number to check
+   * @returns Object indicating if phone exists
+   */
+  async checkPhoneLogin(phone: string): Promise<{ exists: boolean }> {
+    const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const user = await this.userRepository.findOneBy({ phone: cleanedPhone });
+    return { exists: !!user };
+  }
+
+  /**
    * Refreshes authentication tokens
    * @param refreshToken - Refresh token string
    * @returns New authentication tokens
@@ -90,17 +101,6 @@ export class AuthService {
       throw new ConflictException('Refresh token already revoked');
     }
     await this.revokeToken(tokenEntity.id);
-  }
-
-  /**
-   * Checks if a phone number is registered for login
-   * @param phone - Phone number to check
-   * @returns Object indicating if phone exists
-   */
-  async checkPhoneLogin(phone: string): Promise<{ exists: boolean }> {
-    const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
-    const user = await this.userRepository.findOneBy({ phone: cleanedPhone });
-    return { exists: !!user };
   }
 
   /**
@@ -143,17 +143,6 @@ export class AuthService {
   }
 
   /**
-   * Finds user by email or phone identifier
-   * @param dto - Login credentials containing email or phone
-   * @returns User entity or null if not found
-   * @private
-   */
-  private async findUserByIdentifier(dto: LoginDto): Promise<User | null> {
-    const where = dto.email ? { email: dto.email } : { phone: dto.phone };
-    return this.userRepository.findOneBy(where);
-  }
-
-  /**
    * Creates a new user with RENTER role
    * @param dto - Registration data
    * @returns Created user entity
@@ -170,10 +159,20 @@ export class AuthService {
       passwordHash,
       rating: 0
     });
-
     const savedUser = await this.userRepository.save(user);
     await this.userService.addRole(savedUser.id, UserRoleType.RENTER);
     return savedUser;
+  }
+
+  /**
+   * Finds user by email or phone identifier
+   * @param dto - Login credentials containing email or phone
+   * @returns User entity or null if not found
+   * @private
+   */
+  private async findUserByIdentifier(dto: LoginDto): Promise<User | null> {
+    const where = dto.email ? { email: dto.email } : { phone: dto.phone };
+    return this.userRepository.findOneBy(where);
   }
 
   /**
@@ -187,7 +186,6 @@ export class AuthService {
       this.generateAccessToken(userId),
       this.generateRefreshToken()
     ]);
-
     await this.saveRefreshToken(userId, refreshToken);
     return { accessToken, refreshToken };
   }
@@ -244,7 +242,6 @@ export class AuthService {
       where: { refreshTokenHash },
       relations: ['user']
     });
-    
     if (!tokenEntity || tokenEntity.expiry < new Date() || tokenEntity.revoked) {
       throw new UnauthorizedException('Invalid or expired token');
     }
@@ -263,15 +260,6 @@ export class AuthService {
       where: { refreshTokenHash },
       relations: ['user']
     });
-  }
-
-  /**
-   * Revokes a token by marking it as revoked
-   * @param tokenId - Token identifier
-   * @private
-   */
-  private async revokeToken(tokenId: number): Promise<void> {
-    await this.tokenRepository.update(tokenId, { revoked: true });
   }
 
   /**
@@ -296,5 +284,14 @@ export class AuthService {
   private getRefreshTokenExpiryMs(): number {
     const days = this.configService.get<number>('REFRESH_TOKEN_EXPIRY_DAYS', 7);
     return days * 24 * 60 * 60 * 1000;
+  }
+
+  /**
+   * Revokes a token by marking it as revoked
+   * @param tokenId - Token identifier
+   * @private
+   */
+  private async revokeToken(tokenId: number): Promise<void> {
+    await this.tokenRepository.update(tokenId, { revoked: true });
   }
 }

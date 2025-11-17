@@ -24,39 +24,6 @@ export class ListingsService {
   ) {}
 
   /**
-   * Creates a new listing.
-   * @param createDto - The creation DTO.
-   * @param userId - The ID of the creating user.
-   * @returns The saved listing entity.
-   */
-  async create(createDto: CreateListingDto, userId: number): Promise<Listing> {
-    const user = await this.validateUser(userId);
-    const listingData = this.prepareListingData(createDto, { user, status: ListingStatus.ACTIVE });
-    const listing = this.listingRepository.create(listingData);
-
-    const hasLandlordRole = await this.userService.hasRole(userId, UserRoleType.LANDLORD);
-    if (!hasLandlordRole) {
-      await this.userService.addRole(userId, UserRoleType.LANDLORD);
-    }
-
-    return this.listingRepository.save(listing);
-  }
-
-  /**
-   * Updates an existing listing.
-   * @param listingId - The listing ID.
-   * @param updatedto - The update DTO.
-   * @param userId - The updating user ID.
-   * @returns The saved listing entity.
-   */
-  async update(listingId: number, updatedto: UpdateListingDto, userId: number): Promise<Listing> {
-    const listing = await this.validateListingOwnership(listingId, userId);
-    const updatedData = this.prepareListingData(updatedto, listing);
-    const updatedListing = this.listingRepository.create(updatedData);
-    return this.listingRepository.save(updatedListing);
-  }
-
-  /**
    * Retrieves all listings with search filters.
    * @param searchDto - The search DTO.
    * @returns Paginated listings with metadata.
@@ -70,6 +37,27 @@ export class ListingsService {
       allowedStatuses
     ).getManyAndCount();
     return { listings, total, limit: searchDto.limit, offset: searchDto.offset };
+  }
+
+  /**
+   * Retrieves a single listing by ID, tracking view if user provided.
+   * @param id - The listing ID.
+   * @param userId - Optional user ID for listing views tracking.
+   * @returns The listing entity.
+   * @throws NotFoundException if listing not found or inactive.
+   */
+  async findById(id: number, userId?: number): Promise<Listing> {
+    const listing = await this.listingRepository.findOne({
+      where: { id, status: ListingStatus.ACTIVE },
+      relations: ['user']
+    });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    if (userId) {
+      await this.viewHistoryRepository.insert({ user: { id: userId }, listing });
+    }
+    return listing;
   }
 
   /**
@@ -100,24 +88,36 @@ export class ListingsService {
   }
 
   /**
-   * Retrieves a single listing by ID, tracking view if user provided.
-   * @param id - The listing ID.
-   * @param userId - Optional user ID for listing views tracking.
-   * @returns The listing entity.
-   * @throws NotFoundException if listing not found or inactive.
+   * Creates a new listing.
+   * @param createDto - The creation DTO.
+   * @param userId - The ID of the creating user.
+   * @returns The saved listing entity.
    */
-  async findById(id: number, userId?: number): Promise<Listing> {
-    const listing = await this.listingRepository.findOne({
-      where: { id, status: ListingStatus.ACTIVE },
-      relations: ['user']
-    });
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
+  async create(createDto: CreateListingDto, userId: number): Promise<Listing> {
+    const user = await this.validateUser(userId);
+    const listingData = this.prepareListingData(createDto, { user, status: ListingStatus.ACTIVE });
+    const listing = this.listingRepository.create(listingData);
+
+    const hasLandlordRole = await this.userService.hasRole(userId, UserRoleType.LANDLORD);
+    if (!hasLandlordRole) {
+      await this.userService.addRole(userId, UserRoleType.LANDLORD);
     }
-    if (userId) {
-      await this.viewHistoryRepository.insert({ user: { id: userId }, listing });
-    }
-    return listing;
+
+    return this.listingRepository.save(listing);
+  }
+
+  /**
+   * Updates an existing listing.
+   * @param listingId - The listing ID.
+   * @param updatedto - The update DTO.
+   * @param userId - The updating user ID.
+   * @returns The saved listing entity.
+   */
+  async update(listingId: number, updatedto: UpdateListingDto, userId: number): Promise<Listing> {
+    const listing = await this.validateListingOwnership(listingId, userId);
+    const updatedData = this.prepareListingData(updatedto, listing);
+    const updatedListing = this.listingRepository.create(updatedData);
+    return this.listingRepository.save(updatedListing);
   }
 
   /**

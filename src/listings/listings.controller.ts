@@ -42,74 +42,6 @@ import { ListingListResponseDto } from './dto/responses/listing-list-response.dt
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  @HttpCode(201)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Создание нового объявления',
-    description: 'Создаёт объявление на основе предоставленных данных. Требует аутентификации.'
-  })
-  @ApiBody({ type: CreateListingDto, description: 'Данные для создания объявления' })
-  @ApiCreatedResponse({ 
-    description: 'Объявление успешно создано', 
-    type: ListingDetailResponseDto
-  })
-  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
-  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
-  async create(
-    @Body() createListingDto: CreateListingDto,
-    @User('userId') userId: number
-  ): Promise<ListingDetailResponseDto> {
-    const listing = await this.listingsService.create(createListingDto, userId);
-    return ListingMapper.toDetailResponseDto(listing);
-  }
-
-
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  @HttpCode(200)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Обновление объявления',
-    description: 'Обновляет существующее объявление. Требует аутентификации и владения объявлением.'
-  })
-  @ApiParam({ name: 'id', description: 'ID объявления для обновления', type: Number })
-  @ApiBody({ type: UpdateListingDto, description: 'Данные для обновления' })
-  @ApiOkResponse({ 
-    description: 'Объявление успешно обновлено', 
-    type: ListingDetailResponseDto
-  })
-  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
-  @ApiNotFoundResponse({ description: 'Объявление не найдено' })
-  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateListingDto: UpdateListingDto,
-    @User('userId') userId: number
-  ): Promise<ListingDetailResponseDto> {
-    const listing = await this.listingsService.update(+id, updateListingDto, userId);
-    return ListingMapper.toDetailResponseDto(listing);
-  }
-
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  @HttpCode(204)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Удаление объявления',
-    description: 'Выполняет soft-delete объявления путём установки статуса INACTIVE. ' +
-      'Требует аутентификации и владения объявлением.'
-  })
-  @ApiParam({ name: 'id', description: 'ID объявления для удаления', type: Number })
-  @ApiNoContentResponse({ description: 'Объявление успешно удалено (soft-delete)' })
-  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
-  @ApiNotFoundResponse({ description: 'Объявление не найдено' })
-  async remove(@Param('id') id: string, @User('userId') userId: number): Promise<void> {
-    return this.listingsService.remove(+id, userId);
-  }
-
 
   @Get()
   @HttpCode(200)
@@ -198,5 +130,73 @@ export class ListingsController {
       result.limit,
       result.offset
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  @HttpCode(201)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Создание нового объявления',
+    description: 'Создаёт объявление на основе предоставленных данных. Требует аутентификации.'
+  })
+  @ApiBody({ type: CreateListingDto, description: 'Данные для создания объявления' })
+  @ApiCreatedResponse({ 
+    description: 'Объявление успешно создано', 
+    type: ListingDetailResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  async create(
+    @Body() createListingDto: CreateListingDto,
+    @User('userId') userId: number
+  ): Promise<ListingDetailResponseDto> {
+    const listing = await this.listingsService.create(createListingDto, userId);
+    return ListingMapper.toDetailResponseDto(listing);
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Обновление объявления',
+    description: 'Обновляет существующее объявление. Требует аутентификации и владения объявлением.'
+  })
+  @ApiParam({ name: 'id', description: 'ID объявления для обновления', type: Number })
+  @ApiBody({ type: UpdateListingDto, description: 'Данные для обновления' })
+  @ApiOkResponse({ 
+    description: 'Объявление успешно обновлено', 
+    type: ListingDetailResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
+  @ApiNotFoundResponse({ description: 'Объявление не найдено' })
+  @ApiBadRequestResponse({ description: 'Некорректные данные запроса' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateListingDto: UpdateListingDto,
+    @User('userId') userId: number
+  ): Promise<ListingDetailResponseDto> {
+    const listing = await this.listingsService.update(+id, updateListingDto, userId);
+    return ListingMapper.toDetailResponseDto(listing);
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Удаление объявления',
+    description: 'Выполняет soft-delete объявления путём установки статуса INACTIVE. ' +
+      'Требует аутентификации и владения объявлением.'
+  })
+  @ApiParam({ name: 'id', description: 'ID объявления для удаления', type: Number })
+  @ApiNoContentResponse({ description: 'Объявление успешно удалено (soft-delete)' })
+  @ApiUnauthorizedResponse({ description: 'Не авторизован' })
+  @ApiNotFoundResponse({ description: 'Объявление не найдено' })
+  async remove(@Param('id') id: string, @User('userId') userId: number): Promise<void> {
+    return this.listingsService.remove(+id, userId);
   }
 }
