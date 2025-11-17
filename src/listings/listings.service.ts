@@ -182,7 +182,7 @@ export class ListingsService {
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.address !== undefined) data.address = dto.address;
     if (dto.size !== undefined) data.size = dto.size;
-    if (dto.photosJson !== undefined) data.photosJson = dto.photosJson;
+    if (dto.photoUrls !== undefined) data.photosJson = dto.photoUrls;
     if (dto.location !== undefined) {
       data.location = {
         type: 'Point' as const,

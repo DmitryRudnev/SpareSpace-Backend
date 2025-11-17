@@ -148,8 +148,8 @@ export class CreateListingDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(10)
-  @IsUrl({}, { each: true })
-  photosJson?: string[];
+  // @IsUrl({}, { each: true })
+  photoUrls?: string[];
 
   @ApiPropertyOptional({
     type: 'object',
