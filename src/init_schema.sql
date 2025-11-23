@@ -28,6 +28,7 @@ CREATE TABLE users (
     rating DECIMAL(3,2),
     two_fa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
+    telegram_id BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -215,7 +216,8 @@ CREATE TABLE conversations (
     participant2_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     listing_id BIGINT REFERENCES listings(id) ON DELETE SET NULL,
     last_message_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_conversations_participant1_id ON conversations(participant1_id);
@@ -232,6 +234,7 @@ CREATE TABLE messages (
     text TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     read_at TIMESTAMPTZ
 );
 

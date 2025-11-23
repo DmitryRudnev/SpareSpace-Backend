@@ -31,4 +31,7 @@ export class Conversation {
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
 }
