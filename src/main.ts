@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { CustomIoAdapter } from './adapters/custom-io.adapter';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
@@ -26,16 +25,13 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  app.useWebSocketAdapter(
-    new CustomIoAdapter(app, {
-      cors: {
-        origin: '*', // потом заменить на конкретный домен (для продакшена)
-      },
-      path: '/socket.io/',
-      transports: ['polling', 'websocket'],
-      serveClient: false,
-    }),
-  );
+  app.enableCors({
+    // origin: configService.get('CORS_ORIGIN', 'http://localhost:3000'),
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
 
   await app.listen(configService.get('PORT', 3000));
 }

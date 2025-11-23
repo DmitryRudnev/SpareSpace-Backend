@@ -15,6 +15,7 @@ import { WalletsModule } from './wallets/wallets.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ChatModule } from './chat/chat.module';
+// import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { ChatModule } from './chat/chat.module';
     NotificationsModule,
     SubscriptionsModule,
     ChatModule,
+    // TelegramBotModule,
   ],
 })
 export class AppModule {}
