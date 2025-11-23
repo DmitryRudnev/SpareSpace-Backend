@@ -13,7 +13,7 @@ export class UserMapper {
     dto.rating = user.rating;
     dto.verified = user.verified;
     dto.createdAt = new Date(user.createdAt).toISOString();
-
+    
     return dto;
   }
 
