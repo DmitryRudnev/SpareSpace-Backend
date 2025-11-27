@@ -50,7 +50,6 @@ interface AuthenticatedSocket extends Socket {
   }
 })
 @Injectable()
-@UsePipes(new ValidationPipe({ transform: true }))
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(ChatGateway.name);
 
