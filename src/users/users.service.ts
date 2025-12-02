@@ -29,6 +29,20 @@ export class UsersService {
     }
     return user;
   }
+  
+  /**
+   * Finds user by telegram ID
+   * @param telegramId - Telegram ID to find
+   * @returns User entity
+   * @throws NotFoundException if user not found
+   */
+  async findByTelegramId(telegramId: number): Promise<User> {
+    const user = await this.userRepository.findOneBy({ telegramId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
 
   /**
    * Updates user profile data
@@ -64,6 +78,18 @@ export class UsersService {
       user.email = dto.email;
     }
     
+    return this.userRepository.save(user);
+  }
+
+  /**
+   * Updates user telegram ID
+   * @param userId - User ID to update
+   * @param newTelegramId - Update telegram ID
+   * @returns Updated user entity
+   */
+  async updateTelegramId(userId: number, newTelegramId: number | null): Promise<User> {
+    const user = await this.findById(userId);
+    user.telegramId = newTelegramId;
     return this.userRepository.save(user);
   }
 
