@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Wallet } from '../entities/wallet.entity';
 import { WalletBalance } from '../entities/wallet-balance.entity';
 import { Transaction } from '../entities/transaction.entity';
@@ -11,7 +11,7 @@ import { TransferDto } from './dto/transfer.dto';
 import { TransactionType } from '../common/enums/transaction-type.enum';
 import { PaymentStatus } from '../common/enums/payment-status.enum';
 import { CurrencyType } from '../common/enums/currency-type.enum';
-import { User } from '../entities/user.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class WalletsService {
@@ -19,23 +19,28 @@ export class WalletsService {
     @InjectRepository(Wallet) private walletRepository: Repository<Wallet>,
     @InjectRepository(WalletBalance) private balanceRepository: Repository<WalletBalance>,
     @InjectRepository(Transaction) private transactionRepository: Repository<Transaction>,
-    @InjectRepository(User) private userRepository: Repository<User>,
+    private usersService: UsersService,
     private dataSource: DataSource,
   ) {}
 
   private async getOrCreateWallet(userId: number): Promise<Wallet> {
-    let wallet = await this.walletRepository.findOne({ where: { user: { id: userId } }, relations: ['user'] });
+    let wallet = await this.walletRepository.findOne({ 
+      where: { user: { id: userId } }, 
+      relations: ['user'] 
+    });
     if (!wallet) {
-      const user = await this.userRepository.findOneBy({ id: userId });
-      if (!user) throw new NotFoundException('User not found');
-      wallet = this.walletRepository.create({ user });
+      wallet = this.walletRepository.create({ user: { id: userId} });
       wallet = await this.walletRepository.save(wallet);
     }
     return wallet;
   }
 
   private async getOrCreateBalance(wallet: Wallet, currency: CurrencyType): Promise<WalletBalance> {
-    let balance = await this.balanceRepository.findOne({ where: { wallet: { id: wallet.id }, currency } });
+    let balance = await this.balanceRepository.findOne({ 
+      where: { 
+        wallet: { id: wallet.id }, 
+        currency 
+      }});
     if (!balance) {
       balance = this.balanceRepository.create({ wallet, currency, balance: 0 });
       balance = await this.balanceRepository.save(balance);
@@ -55,6 +60,17 @@ export class WalletsService {
       where.currency = dto.currency;
     }
     return this.balanceRepository.find({ where });
+  }
+
+  async findTransactionsByUserId(userId: number, limit: number = 5, offset: number = 0): Promise<Transaction[]> {
+    const wallet = await this.getOrCreateWallet(userId);
+    return this.transactionRepository.find({
+      where: { wallet: { id: wallet.id } },
+      order: { createdAt: 'DESC' },
+      skip: offset,
+      take: limit,
+      relations: ['booking'],
+    });
   }
 
   async topup(userId: number, dto: TopupDto): Promise<Transaction> {
@@ -106,8 +122,7 @@ export class WalletsService {
   }
 
   async transfer(userId: number, dto: TransferDto): Promise<{ fromTransaction: Transaction; toTransaction: Transaction }> {
-    const toUser = await this.userRepository.findOneBy({ id: dto.toUserId });
-    if (!toUser) throw new NotFoundException('Recipient user not found');
+    await this.usersService.findById(dto.toUserId);
 
     return this.dataSource.transaction(async (manager) => {
       const fromWallet = await this.getOrCreateWallet(userId);
@@ -129,7 +144,7 @@ export class WalletsService {
         amount: -dto.amount,
         currency: dto.currency,
         status: PaymentStatus.COMPLETED,
-        bookingId: undefined,
+        booking: undefined,
         description: dto.description || `Transfer to user ${dto.toUserId}`,
       });
       const toTransaction = manager.create(Transaction, {
@@ -138,7 +153,7 @@ export class WalletsService {
         amount: dto.amount,
         currency: dto.currency,
         status: PaymentStatus.COMPLETED,
-        bookingId: undefined,
+        booking: undefined,
         description: dto.description || `Transfer from user ${userId}`,
       });
 
