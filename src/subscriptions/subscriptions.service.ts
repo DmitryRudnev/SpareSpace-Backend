@@ -207,8 +207,8 @@ export class SubscriptionsService {
       endDate.setMonth(endDate.getMonth() + 1); // месячная подписка; адаптировать по плану
 
       const subscription = manager.create(UserSubscription, {
-        userId: userId,
-        planId: dto.planId,
+        user: { id: userId },
+        plan: { id: dto.planId },
         startDate: startDate,
         endDate: endDate,
         status: SubscriptionStatus.ACTIVE,
