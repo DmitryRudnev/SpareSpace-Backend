@@ -1,8 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 
-@Entity('user_tokens')
-export class UserToken {
+@Entity('refresh_tokens')
+export class RefreshToken {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
@@ -11,10 +11,10 @@ export class UserToken {
   user: User;
 
   @Column({ type: 'text' })
-  refreshTokenHash: string;
+  tokenHash: string;
 
   @Column({ type: 'timestamptz' })
-  expiry: Date;
+  expiresAt: Date;
 
   @Column({ default: false })
   revoked: boolean;

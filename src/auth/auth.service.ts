@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
 import { UsersService } from '../users/users.service';
-import { UserToken } from '../entities/user-token.entity';
+import { RefreshToken } from '../entities/refresh-token.entity';
 import { User } from '../entities/user.entity';
 import { UserRoleType } from '../common/enums/user-role-type.enum';
 
@@ -34,7 +34,7 @@ export class AuthService {
    */
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(UserToken) private readonly tokenRepository: Repository<UserToken>,
+    @InjectRepository(RefreshToken) private readonly tokenRepository: Repository<RefreshToken>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly userService: UsersService,
@@ -222,8 +222,8 @@ export class AuthService {
     const expiry = new Date(Date.now() + this.getRefreshTokenExpiryMs());
     const tokenEntity = this.tokenRepository.create({
       user: { id: userId },
-      refreshTokenHash,
-      expiry,
+      tokenHash: refreshTokenHash,
+      expiresAt: expiry,
       revoked: false
     });
     await this.tokenRepository.save(tokenEntity);
@@ -236,13 +236,13 @@ export class AuthService {
    * @throws {UnauthorizedException} If token is invalid, expired or revoked
    * @private
    */
-  private async validateRefreshToken(refreshToken: string): Promise<UserToken> {
+  private async validateRefreshToken(refreshToken: string): Promise<RefreshToken> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
     const tokenEntity = await this.tokenRepository.findOne({
-      where: { refreshTokenHash },
+      where: { tokenHash: refreshTokenHash },
       relations: ['user']
     });
-    if (!tokenEntity || tokenEntity.expiry < new Date() || tokenEntity.revoked) {
+    if (!tokenEntity || tokenEntity.expiresAt < new Date() || tokenEntity.revoked) {
       throw new UnauthorizedException('Invalid or expired token');
     }
     return tokenEntity;
@@ -254,10 +254,10 @@ export class AuthService {
    * @returns UserToken entity or null if not found
    * @private
    */
-  private async findValidToken(refreshToken: string): Promise<UserToken | null> {
+  private async findValidToken(refreshToken: string): Promise<RefreshToken | null> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
     return this.tokenRepository.findOne({
-      where: { refreshTokenHash },
+      where: { tokenHash: refreshTokenHash },
       relations: ['user']
     });
   }

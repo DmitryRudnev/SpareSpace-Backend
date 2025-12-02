@@ -51,18 +51,18 @@ CREATE INDEX idx_user_roles_role ON user_roles(role);
 
 
 
-CREATE TABLE user_tokens (
+CREATE TABLE refresh_tokens (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token_hash TEXT NOT NULL,
-    expiry TIMESTAMPTZ NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    revoked BOOLEAN NOT NULL DEFAULT FALSE
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_user_tokens_user_id ON user_tokens(user_id);
-CREATE INDEX idx_user_tokens_refresh_token ON user_tokens(refresh_token_hash);
+CREATE INDEX idx_user_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_user_tokens_refresh_token ON refresh_tokens(refresh_token_hash);
 
 
 
