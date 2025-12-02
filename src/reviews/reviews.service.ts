@@ -103,4 +103,11 @@ export class ReviewsService {
     if (!review) throw new NotFoundException('Review not found');
     return review;
   }
+
+  async getReviewsCountByUserId(userId: number): Promise<number> {
+    return await this.reviewRepository
+      .createQueryBuilder('review')
+      .where('review.toUser.id = :userId', { userId })
+      .getCount();
+  }
 }

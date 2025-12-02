@@ -11,5 +11,6 @@ import { User } from '../entities/user.entity';
   imports: [TypeOrmModule.forFeature([Review, Booking, Listing, User])],
   controllers: [ReviewsController],
   providers: [ReviewsService],
+  exports: [ReviewsService],
 })
 export class ReviewsModule {}
