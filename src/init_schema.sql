@@ -73,18 +73,19 @@ CREATE TABLE listings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(26,16) NOT NULL,  -- цена за единицу времени(за день/неделю/месяц)
-    price_period listing_period_type NOT NULL DEFAULT 'DAY',
+    price_period listing_period_type NOT NULL DEFAULT 'DAY',  -- период времени, за который указывается цена
     currency currency_type NOT NULL DEFAULT 'RUB',
-    location GEOMETRY(POINT, 4326),  -- для Google/Яндекс карт
+    location GEOMETRY(POINT, 4326),
     address VARCHAR(500) NOT NULL,
     size DECIMAL(10,2),
-    photos_json JSONB,  -- массив URL в S3
+    photo_urls JSONB,  -- массив URL в S3
     amenities JSONB,  -- например, { "security": true, "electricity": true }
     availability TSTZRANGE[] NOT NULL,  -- массив периодов доступности
     status listing_status NOT NULL DEFAULT 'DRAFT',
+    rating DECIMAL(3,2),
     views_count INTEGER NOT NULL DEFAULT 0,
     reposts_count INTEGER NOT NULL DEFAULT 0,
-    favorites_count INTEGER NOT NULL DEFAULT 0,  -- количество пользователей, добавивших в избранное
+    favorites_count INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -17,8 +17,8 @@ export class ListingMapper {
     dto.currency = listing.currency;
     dto.pricePeriod = listing.pricePeriod;
     dto.address = listing.address;
-    dto.firstPhotoUrl = listing.photosJson && listing.photosJson.length > 0 
-      ? listing.photosJson[0] 
+    dto.firstPhotoUrl = listing.photoUrls && listing.photoUrls.length > 0 
+      ? listing.photoUrls[0] 
       : null;
     dto.viewsCount = listing.viewsCount;
     dto.repostsCount = listing.repostsCount;
@@ -41,7 +41,7 @@ export class ListingMapper {
     dto.currency = listing.currency;
     dto.pricePeriod = listing.pricePeriod;
     dto.address = listing.address;
-    dto.photoUrls = listing.photosJson;
+    dto.photoUrls = listing.photoUrls;
     dto.amenities = listing.amenities;
     dto.viewsCount = listing.viewsCount;
     dto.repostsCount = listing.repostsCount;

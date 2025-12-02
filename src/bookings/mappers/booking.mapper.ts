@@ -11,8 +11,8 @@ export class BookingMapper {
     
     dto.id = booking.id;
     dto.listingTitle = booking.listing.title;
-    dto.firstListingPhoto = booking.listing.photosJson && booking.listing.photosJson.length > 0 
-      ? booking.listing.photosJson[0] 
+    dto.firstListingPhoto = booking.listing.photoUrls && booking.listing.photoUrls.length > 0 
+      ? booking.listing.photoUrls[0] 
       : null;
     dto.renter = UserMapper.toPublicResponseDto(booking.renter);
     dto.landlord = UserMapper.toPublicResponseDto(booking.listing.user);

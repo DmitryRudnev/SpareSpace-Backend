@@ -63,7 +63,7 @@ export class Listing {
   size: number | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  photosJson: string[] | null;
+  photoUrls: string[] | null;
 
   @Column({ type: 'jsonb', nullable: true })
   amenities: Record<string, string> | null;
@@ -78,6 +78,9 @@ export class Listing {
     default: ListingStatus.DRAFT,
   })
   status: ListingStatus;
+
+  @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
+  rating: number | null;
 
   @Column({ default: 0 })
   viewsCount: number;
