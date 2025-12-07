@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsersService } from '../../../users/users.service';
+import { UsersService } from '../../../users/services/users.service';
 import { SubscriptionsService } from '../../../subscriptions/subscriptions.service';
 import { TelegramBaseService } from './telegram-base.service';
 import { TelegramSetupService } from '../telegram-setup.service';

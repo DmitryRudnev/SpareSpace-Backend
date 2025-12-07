@@ -1,19 +1,22 @@
 import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
-import { Repository, In, DataSource, IsNull, FindOperator } from 'typeorm';
+import { Repository, In, DataSource, IsNull, FindOperator, FindOptionsWhere, Not } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 import { Conversation } from '../entities/conversation.entity';
 import { Message } from '../entities/message.entity';
 
-import { CreateConversationDto } from './dto/requests/create-conversation.dto';
-import { SearchConversationsDto } from './dto/requests/search-conversations.dto';
-import { SearchMessagesDto } from './dto/requests/search-messages.dto';
+import {
+  CreateConversationDto,
+  SearchConversationsDto,
+  SearchMessagesDto,
+ } from './dto/requests';
 
 import { 
   ConversationNotFoundException, 
   ConversationAccessDeniedException,
-  MessageNotFoundException
+  MessageNotFoundException,
+  MessageAccessDeniedException
 } from '../shared/exceptions/domain.exception';
 
 interface FindConversationsResult {
@@ -78,12 +81,10 @@ export class ChatService {
   /**
    * Поиск беседы по ID с проверкой прав доступа
    * @param conversationId - ID беседы
-   * @param userId - ID пользователя для проверки доступа
    * @returns Объект беседы
    * @throws ConversationNotFoundException если беседа не найдена
-   * @throws ConversationAccessDeniedException если пользователь не участник
    */
-  async findConversationById(conversationId: number, userId: number): Promise<Conversation> {
+  async findConversationById(conversationId: number): Promise<Conversation> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
       relations: {
@@ -97,27 +98,34 @@ export class ChatService {
       throw new ConversationNotFoundException(conversationId);
     }
 
-    if (conversation.participant1.id != userId && conversation.participant2.id != userId) {
+    return conversation;
+  }
+
+  /**
+   * Проверяет, является ли пользователь участником беседы
+   * @param conversationId - ID беседы
+   * @param userId - ID пользователя для проверки
+   * @throws ConversationAccessDeniedException если пользователь не участник
+   */
+  async verifyConversationAccess(conversationId: number, userId: number): Promise<void> {
+    const conversation = await this.findConversationById(conversationId);
+
+    if (userId !== Number(conversation.participant1.id) && 
+        userId !== Number(conversation.participant2.id)) {
       throw new ConversationAccessDeniedException(conversationId, userId);
     }
-
-    return conversation;
   }
 
   /**
    * Поиск сообщений в беседе с пагинацией
    * @param conversationId - ID беседы
-   * @param userId - ID пользователя для проверки доступа
    * @param dto - DTO с параметрами пагинации
    * @returns Объект с массивом сообщений и метаданными пагинации
    */
   async findMessages(
     conversationId: number, 
-    userId: number, 
     dto: SearchMessagesDto
   ): Promise<FindMessagesResult> {
-    await this.findConversationById(conversationId, userId);
-
     const [messages, total] = await this.messageRepository.findAndCount({
       where: { conversation: { id: conversationId } },
       relations: { 
@@ -140,12 +148,11 @@ export class ChatService {
   /**
    * Поиск сообщения по ID с проверкой прав доступа
    * @param messageId - ID сообщения
-   * @param userId - ID пользователя для проверки доступа
    * @returns Объект сообщения
    * @throws MessageNotFoundException если сообщение не найдено
    * @throws ConversationAccessDeniedException если пользователь не участник беседы
    */
-  async findMessageById(messageId: number, userId: number): Promise<Message> {
+  async findMessageById(messageId: number): Promise<Message> {
     const message = await this.messageRepository.findOne({
       where: { id: messageId },
       relations: {
@@ -159,11 +166,6 @@ export class ChatService {
 
     if (!message) {
       throw new MessageNotFoundException(messageId);
-    }
-
-    const { conversation } = message;
-    if (conversation.participant1.id != userId && conversation.participant2.id != userId) {
-      throw new ConversationAccessDeniedException(conversation.id, userId);
     }
 
     return message;
@@ -209,8 +211,55 @@ export class ChatService {
     });
 
     const savedConversation = await this.conversationRepository.save(conversation);
-    return this.findConversationById(savedConversation.id, currentUserId);
+    return this.findConversationById(savedConversation.id);
   }
+
+  /**
+   * Удаление или восстановление беседы (мягкое удаление)
+   * @param conversationId - ID беседы
+   * @param permanent - Флаг полного удаления (true) или восстановления (false)
+   * @throws ConversationNotFoundException если беседа не найдена
+   * @throws ConversationAccessDeniedException если пользователь не участник
+   */
+  async deleteConversation(
+    conversationId: number, 
+    permanent: boolean = false
+  ): Promise<void> {   
+    if (permanent) {
+      // Полное удаление с каскадным удалением сообщений
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
+        await transactionalEntityManager.delete(Message, { 
+          conversation: { id: conversationId } 
+        });
+        await transactionalEntityManager.delete(Conversation, { 
+          id: conversationId 
+        });
+      });
+    } else {
+      // Мягкое удаление
+      await this.conversationRepository.softDelete({ id: conversationId });
+    }
+  }
+
+  /**
+   * Восстановление мягко удаленной беседы
+   * @param conversationId - ID беседы
+   * @throws ConversationNotFoundException если беседа не найдена
+   * @throws ConversationAccessDeniedException если пользователь не участник
+   */
+  async restoreConversation(conversationId: number): Promise<void> {   
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      withDeleted: true
+    });
+
+    if (!conversation) {
+      throw new ConversationNotFoundException(conversationId);
+    }
+
+    await this.conversationRepository.restore({ id: conversationId });
+  }
+
 
   // ==================== WEBSOCKET GATEWAY METHODS ====================
 
@@ -226,8 +275,6 @@ export class ChatService {
     senderId: number, 
     text: string
   ): Promise<Message> {
-    await this.findConversationById(conversationId, senderId);
-
     const message = this.messageRepository.create({
       conversation: { id: conversationId },
       sender: { id: senderId },
@@ -236,43 +283,165 @@ export class ChatService {
     });
     const savedMessage = await this.messageRepository.save(message);
     
-    await this.conversationRepository.update(conversationId, {
-      lastMessageAt: new Date()
-    });
+    await this.conversationRepository.update(
+      { id: conversationId },
+      { lastMessageAt: new Date() }
+    );
 
-    return this.findMessageById(savedMessage.id, senderId);
+    return this.findMessageById(savedMessage.id);
   }
 
   /**
    * Пометка сообщений как прочитанных
    * @param conversationId - ID беседы
-   * @param userId - ID пользователя
-   * @param messageIds - Опциональный массив ID сообщений для пометки (уже валидирован через DTO)
+   * @param readerId - ID пользователя
+   * @param messageIds - Опциональный массив ID сообщений для пометки
    */
   async markMessagesAsRead(
     conversationId: number, 
-    userId: number, 
+    readerId: number, 
     messageIds?: number[]
   ): Promise<void> {
-    const conversation = await this.findConversationById(conversationId, userId);
-    
-    const otherParticipantId = conversation.participant1.id == userId ? 
-      conversation.participant2.id : conversation.participant1.id;
-
-    const updateCondition: any = {
+    const where: FindOptionsWhere<Message> = {
       conversation: { id: conversationId },
       isRead: false,
-      sender: { id: otherParticipantId }
+      sender: Not(readerId),
     };
 
     if (messageIds && messageIds.length > 0) {
-      updateCondition.id = In(messageIds);
+      where.id = In(messageIds);
+      const messages = await this.messageRepository.find({ where });
+      if (messages.length !== messageIds.length) {
+        throw new MessageAccessDeniedException(messageIds, conversationId, readerId);
+      }
     }
 
-    await this.messageRepository.update(updateCondition, { 
+    await this.messageRepository.update(where, { 
       isRead: true,
       readAt: new Date()
     });
+  }
+
+  /**
+   * Редактирование сообщения
+   * @param messageId - ID сообщения для редактирования
+   * @param newText - Новый текст сообщения
+   * @returns Обновленное сообщение
+   */
+  async editMessage(
+    messageId: number, 
+    newText: string
+  ): Promise<Message> {
+    await this.messageRepository.update(
+      { id: messageId },
+      { text: newText }
+    );
+    return this.findMessageById(messageId);
+  }
+
+  /**
+   * Удаление сообщений и обновление временной метки последнего сообщения в чате
+   * @param messageIds - ID сообщений для удаления
+   * @param conversationId - ID беседы
+   */
+  async deleteMessages(
+    messageIds: number[],
+    conversationId: number,
+  ): Promise<void> {
+
+    await this.messageRepository.delete({
+      id: In(messageIds)
+    });
+
+    const lastMessage = await this.getLastMessage(conversationId);
+    await this.conversationRepository.update(
+      { id: conversationId }, 
+      { lastMessageAt: lastMessage?.sentAt ?? null }
+    );
+  }
+
+  /**
+   * Проверяет, является ли пользователь отправителем сообщения
+   * @param messageIds - массив ID сообщений
+   * @param conversationId - ID беседы 
+   * @param userId - ID отправителя
+   * @throws MessageAccessDeniedException
+   */
+  async verifyMessageOwnership(
+    messageIds: number[],
+    conversationId: number,
+    userId: number,
+  ): Promise<void> {
+    const messages = await this.messageRepository.find({
+      where: { 
+        id: In(messageIds),
+        conversation: { id: conversationId },
+        sender: { id: userId },
+      }
+    });
+
+    if (messages.length !== messageIds.length) {
+      throw new MessageAccessDeniedException(messageIds, conversationId, userId);
+    }
+  }
+
+  /**
+   * Получение последнего сообщения в беседе
+   * @param conversationId - ID беседы
+   * @returns Последнее сообщение или null если сообщений нет
+   */
+  async getLastMessage(conversationId: number): Promise<Message | null> {
+    const message = await this.messageRepository.findOne({
+      where: { conversation: { id: conversationId } },
+      relations: { sender: true },
+      order: { sentAt: 'DESC' },
+    });
+    return message;
+  }
+
+  /**
+   * Получение ID последнего сообщения в беседе
+   * @param conversationId - ID беседы
+   * @returns ID последнего сообщения или null если сообщений нет
+   */
+  async getLastMessageId(conversationId: number): Promise<number | null> {
+    const message = await this.messageRepository.findOne({
+      select: ['id'], // Выбираем только поле id
+      where: { conversation: { id: conversationId } },
+      order: { sentAt: 'DESC' },
+    });
+    return message?.id ?? null;
+  }
+
+  /**
+   * Получение массива ID непрочитанных сообщений в беседе
+   * @param conversationId - ID беседы
+   * @param userId - ID пользователя
+   * @param isSender - надо искать сообщения от этого пользователя?
+   * @returns Количество непрочитанных сообщений
+   */
+  async getUnreadMessageIds(
+    conversationId: number, 
+    userId: number,
+    isSender: boolean,
+  ): Promise<number[]> {
+    const where: FindOptionsWhere<Message> = {
+      conversation: { id: conversationId },
+      isRead: false,
+    };
+    if (isSender) {
+      where.sender = { id: userId };
+    } else {
+      where.sender = Not(userId);
+    }
+    
+    const messages = await this.messageRepository.find({
+      where,
+      select: ['id'],
+      order: { sentAt: 'ASC' }
+    });
+    
+    return messages.map(msg => msg.id);
   }
 
   // ==================== SHARED PRIVATE METHODS ====================

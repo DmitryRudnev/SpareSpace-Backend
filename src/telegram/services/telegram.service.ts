@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { TelegramWebhookUpdate, TelegramMessage } from '../interfaces';
-import { UsersService } from '../../users/users.service';
+import { UsersService } from '../../users/services/users.service';
 import { TelegramStartHandlerService } from './command-handlers/telegram-start-handler.service';
 import { TelegramProfileHandlerService } from './command-handlers/telegram-profile-handler.service';
 import { TelegramListingsHandlerService } from './command-handlers/telegram-listings-handler.service';

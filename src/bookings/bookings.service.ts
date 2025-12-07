@@ -14,7 +14,7 @@ import { UserRoleType } from '../common/enums/user-role-type.enum';
 import { Booking } from '../entities/booking.entity';
 import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 
 import { CreateBookingDto } from './dto/requests/create-booking.dto';
 import { SearchBookingsDto } from './dto/requests/search-bookings.dto';

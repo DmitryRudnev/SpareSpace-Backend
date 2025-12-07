@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -19,9 +19,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     const userId = parseInt(payload.sub, 10);
+    if (!userId || isNaN(userId)) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
     const roles = await this.userService.getUserRoles(userId);
-    if (!userId || roles.length === 0) {
-      throw new UnauthorizedException();
+    if (!roles || roles.length === 0) {
+      throw new UnauthorizedException('User has no assigned roles');
     }
 
     return { userId, roles };

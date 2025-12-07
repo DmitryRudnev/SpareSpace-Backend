@@ -21,7 +21,7 @@ import {
   ApiConflictResponse,
 } from '@nestjs/swagger';
 
-import { UsersService } from './users.service';
+import { UsersService } from './services/users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../common/decorators/user.decorator';
 import { UserMapper } from './mappers/user.mapper';

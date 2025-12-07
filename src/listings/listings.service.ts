@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import type { Point } from 'geojson';
 
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 import { Listing } from '../entities/listing.entity';
 import { User } from '../entities/user.entity';
 import { ViewHistory } from '../entities/view-history.entity';

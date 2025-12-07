@@ -1,7 +1,9 @@
 import { Message } from '../../entities/message.entity';
-import { MessageResponseDto } from '../dto/responses/message-response.dto';
-import { MessageListResponseDto } from '../dto/responses/message-list-response.dto';
 import { UserMapper } from '../../users/mappers/user.mapper';
+import {
+  MessageResponseDto,
+  MessagesListResponseDto,
+} from '../dto/responses';
 
 export class MessageMapper {
   static toResponseDto(message: Message): MessageResponseDto {
@@ -22,8 +24,8 @@ export class MessageMapper {
     total: number, 
     limit: number, 
     offset: number
-  ): MessageListResponseDto {
-    const dto = new MessageListResponseDto();
+  ): MessagesListResponseDto {
+    const dto = new MessagesListResponseDto();
     
     dto.messages = messages.map(message => this.toResponseDto(message));
     dto.total = total;

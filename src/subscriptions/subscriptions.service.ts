@@ -16,7 +16,7 @@ import {
   MoreThan,
 } from 'typeorm';
 
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 import { WalletsService } from '../wallets/wallets.service';
 
 import { SubscriptionPlan } from '../entities/subscription-plan.entity';

@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
-import { UsersService } from '../../users/users.service';
+import { UsersService } from '../../users/services/users.service';
 import { TelegramVerificationService } from './telegram-verification.service';
 import { TelegramSetupService } from './telegram-setup.service';
 

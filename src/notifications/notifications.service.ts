@@ -5,7 +5,7 @@ import { Notification } from '../entities/notification.entity';
 import { SearchNotificationsDto } from './dto/search-notifications.dto';
 import { MarkAsReadDto } from './dto/mark-as-read.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 import { NotificationStatus } from '../common/enums/notification-status.enum';
 
 @Injectable()

@@ -1,8 +1,10 @@
 import { Conversation } from '../../entities/conversation.entity';
-import { ConversationResponseDto } from '../dto/responses/conversation-response.dto';
-import { ConversationsListResponseDto } from '../dto/responses/conversations-list-response.dto';
 import { UserMapper } from '../../users/mappers/user.mapper';
 import { ListingMapper } from '../../listings/mappers/listing.mapper';
+import {
+  ConversationResponseDto,
+  ConversationsListResponseDto,
+} from '../dto/responses';
 
 export class ConversationMapper {
   static toResponseDto(conversation: Conversation): ConversationResponseDto {

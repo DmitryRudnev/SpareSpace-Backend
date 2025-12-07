@@ -11,7 +11,7 @@ import { TransferDto } from './dto/transfer.dto';
 import { TransactionType } from '../common/enums/transaction-type.enum';
 import { PaymentStatus } from '../common/enums/payment-status.enum';
 import { CurrencyType } from '../common/enums/currency-type.enum';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/services/users.service';
 
 @Injectable()
 export class WalletsService {
