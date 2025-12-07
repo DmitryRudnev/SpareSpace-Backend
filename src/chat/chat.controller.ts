@@ -2,6 +2,8 @@ import {
   Controller, 
   Get, 
   Post, 
+  Delete, 
+  Patch, 
   Body, 
   Param, 
   Query, 
@@ -34,12 +36,18 @@ import { UserRoleType } from '../common/enums/user-role-type.enum';
 import { ConversationMapper } from './mappers/conversation.mapper';
 import { MessageMapper } from './mappers/message.mapper';
 
-import { SearchMessagesDto } from './dto/requests/search-messages.dto';
-import { SearchConversationsDto } from './dto/requests/search-conversations.dto';
-import { CreateConversationDto } from './dto/requests/create-conversation.dto';
-import { ConversationResponseDto } from './dto/responses/conversation-response.dto';
-import { ConversationsListResponseDto } from './dto/responses/conversations-list-response.dto';
-import { MessageListResponseDto } from './dto/responses/message-list-response.dto';
+import {
+  CreateConversationDto,
+  DeleteConversationDto,
+  SearchConversationsDto,
+  SearchMessagesDto,
+} from './dto/requests';
+
+import {
+  ConversationResponseDto,
+  ConversationsListResponseDto,
+  MessagesListResponseDto,
+} from './dto/responses';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -103,7 +111,8 @@ export class ChatController {
     @Param('id') conversationId: string,
     @User('userId') userId: number
   ): Promise<ConversationResponseDto> {
-    const conversation = await this.chatService.findConversationById(+conversationId, userId);
+    await this.chatService.verifyConversationAccess(Number(conversationId), userId)
+    const conversation = await this.chatService.findConversationById(Number(conversationId));
     return ConversationMapper.toResponseDto(conversation);
   }
 
@@ -128,15 +137,16 @@ export class ChatController {
   })
   @ApiOkResponse({
     description: 'Список сообщений беседы',
-    type: MessageListResponseDto
+    type: MessagesListResponseDto
   })
   @ApiNotFoundResponse({ description: 'Беседа не найдена' })
   async findMessages(
     @Param('id') conversationId: string,
     @Query() getMessagesDto: SearchMessagesDto,
     @User('userId') userId: number
-  ): Promise<MessageListResponseDto> {
-    const result = await this.chatService.findMessages(+conversationId, userId, getMessagesDto);
+  ): Promise<MessagesListResponseDto> {
+    await this.chatService.verifyConversationAccess(Number(conversationId), userId)
+    const result = await this.chatService.findMessages(Number(conversationId), getMessagesDto);
     return MessageMapper.toListResponseDto(
       result.messages,
       result.total,
@@ -172,5 +182,62 @@ export class ChatController {
     createConversationDto
     );
     return ConversationMapper.toResponseDto(conversation);
+  }
+
+
+  @Delete('conversations/:id')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Удаление беседы',
+    description: 'Удаляет беседу (мягкое удаление по умолчанию). ' +
+    'Требует аутентификации и участия в беседе.'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'ID беседы', 
+    type: Number,
+    example: 1
+  })
+  @ApiBody({ 
+    type: DeleteConversationDto, 
+    required: false,
+    description: 'Параметры удаления' 
+  })
+  @ApiOkResponse({ description: 'Беседа успешно удалена' })
+  @ApiNotFoundResponse({ description: 'Беседа не найдена' })
+  async deleteConversation(
+    @Param('id') conversationId: string,
+    @User('userId') userId: number,
+    @Body() dto?: DeleteConversationDto
+  ): Promise<void> {
+    await this.chatService.verifyConversationAccess(Number(conversationId), userId)
+    await this.chatService.deleteConversation(
+      Number(conversationId), 
+      dto?.permanent
+    );
+  }
+
+
+  @Patch('conversations/:id/restore')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Восстановление беседы',
+    description: 'Восстанавливает мягко удаленную беседу. ' +
+    'Требует аутентификации и участия в беседе.'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'ID беседы', 
+    type: Number,
+    example: 1
+  })
+  @ApiOkResponse({ description: 'Беседа успешно восстановлена' })
+  @ApiNotFoundResponse({ description: 'Беседа не найдена' })
+  async restoreConversation(
+    @Param('id') conversationId: string,
+    @User('userId') userId: number
+  ): Promise<void> {
+    await this.chatService.verifyConversationAccess(Number(conversationId), userId);
+    await this.chatService.restoreConversation(Number(conversationId));
   }
 }
