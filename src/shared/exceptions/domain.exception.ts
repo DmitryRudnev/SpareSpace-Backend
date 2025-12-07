@@ -25,3 +25,16 @@ export class MessageNotFoundException extends DomainException {
     this.name = 'MessageNotFoundException';
   }
 }
+
+export class MessageAccessDeniedException extends DomainException {
+  constructor(
+    messageIds: number[], 
+    conversationId: number, 
+    userId: number,
+  ) {
+    const ids = messageIds.join(', ');
+    super(
+      `User ${userId} lacks permission for messages [${ids}] in conversation ${conversationId}. `);
+    this.name = 'MessageAccessDeniedException';
+  }
+}

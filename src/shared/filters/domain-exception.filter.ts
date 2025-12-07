@@ -8,12 +8,15 @@ import { Response } from 'express';
 import { 
   ConversationNotFoundException, 
   ConversationAccessDeniedException,
-  MessageNotFoundException
+  MessageNotFoundException,
+  MessageAccessDeniedException
 } from '../exceptions/domain.exception';
 
 @Catch(
   ConversationNotFoundException,
-  ConversationAccessDeniedException
+  ConversationAccessDeniedException,
+  MessageNotFoundException,
+  MessageAccessDeniedException
 )
 export class DomainExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost) {
@@ -26,7 +29,8 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (exception instanceof ConversationNotFoundException) {
       status = HttpStatus.NOT_FOUND;
       message = exception.message;
-    } else if (exception instanceof ConversationAccessDeniedException) {
+    } else if (exception instanceof ConversationAccessDeniedException ||
+               exception instanceof MessageAccessDeniedException) {
       status = HttpStatus.FORBIDDEN;
       message = exception.message;
     } else if (exception instanceof MessageNotFoundException) {
