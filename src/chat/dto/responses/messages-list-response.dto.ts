@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MessageResponseDto } from './message-response.dto';
 
-export class MessageListResponseDto {
+export class MessagesListResponseDto {
   @ApiProperty({ type: [MessageResponseDto], description: 'Массив сообщений' })
   messages: MessageResponseDto[];
 
