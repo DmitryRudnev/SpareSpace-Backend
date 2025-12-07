@@ -12,6 +12,8 @@ export class UserMapper {
     dto.patronymic = user.patronymic;
     dto.rating = user.rating;
     dto.verified = user.verified;
+    dto.isOnline = user.isOnline;
+    dto.lastSeenAt = new Date(user.lastSeenAt).toISOString();
     dto.createdAt = new Date(user.createdAt).toISOString();
     
     return dto;

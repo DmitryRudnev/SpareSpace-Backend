@@ -19,6 +19,12 @@ export class UserPublicResponseDto {
   @ApiProperty({ type: Boolean, description: 'Верифицирован ли пользователь', example: true })
   verified: boolean;
 
+  @ApiProperty({ type: Boolean, description: 'В сети или нет', example: true })
+  isOnline: boolean;
+
+  @ApiProperty({ type: String, description: 'Дата, когда пользователь последний раз был онлайн (ISO8601)', example: '2025-01-01T12:00:00.000Z' })
+  lastSeenAt: string;
+
   @ApiProperty({ type: String, description: 'Дата создания (ISO8601)', example: '2025-01-01T00:00:00.000Z' })
   createdAt: string;
 }
