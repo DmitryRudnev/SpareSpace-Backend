@@ -44,6 +44,12 @@ export class User {
   @Column({ default: false })
   verified: boolean;
 
+  @Column({ default: false })
+  isOnline: boolean;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  lastSeenAt: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

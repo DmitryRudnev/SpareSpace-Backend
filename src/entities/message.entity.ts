@@ -3,9 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import { User } from './user.entity';
@@ -32,9 +33,12 @@ export class Message {
   @CreateDateColumn({ type: 'timestamptz' })
   sentAt: Date;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
   @Column({ type: 'timestamptz', nullable: true })
   readAt: Date | null;
+  
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
 }
