@@ -8,6 +8,9 @@ export class BookingResponseDto {
   @ApiProperty({ type: Number, description: 'ID бронирования', example: 1 })
   id: number;
 
+  @ApiProperty({ type: Number, description: 'ID объявления', example: 1 })
+  listingId: number;
+
   @ApiProperty({ type: String, description: 'Заголовок объявления', example: 'Просторный паркинг в центре' })
   listingTitle: string;
 

@@ -10,6 +10,7 @@ export class BookingMapper {
     const dto = new BookingResponseDto();
     
     dto.id = booking.id;
+    dto.listingId = booking.listing.id;
     dto.listingTitle = booking.listing.title;
     dto.firstListingPhoto = booking.listing.photoUrls && booking.listing.photoUrls.length > 0 
       ? booking.listing.photoUrls[0] 
