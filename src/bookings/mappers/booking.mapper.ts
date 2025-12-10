@@ -19,6 +19,7 @@ export class BookingMapper {
     dto.totalPrice = booking.totalPrice;
     dto.currency = booking.currency;
     dto.status = booking.status;
+    dto.period = this.parsePeriodString(booking.period);
     dto.createdAt = new Date(booking.createdAt).toISOString();
     return dto;
   }
