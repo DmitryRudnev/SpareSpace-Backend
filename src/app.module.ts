@@ -17,6 +17,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ChatModule } from './chat/chat.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { FavoritesModule } from './favorites/favorites.module';
 import telegramConfig from './telegram/config/telegram.config';
 
 
@@ -65,6 +66,7 @@ import telegramConfig from './telegram/config/telegram.config';
     ChatModule,
     TelegramModule,
     WebSocketModule,
+    FavoritesModule,
   ],
 })
 export class AppModule {}
