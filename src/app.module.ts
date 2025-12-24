@@ -18,6 +18,7 @@ import { ChatModule } from './chat/chat.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { QuestionsModule } from './questions/questions.module';
 import telegramConfig from './telegram/config/telegram.config';
 
 
@@ -67,6 +68,7 @@ import telegramConfig from './telegram/config/telegram.config';
     TelegramModule,
     WebSocketModule,
     FavoritesModule,
+    QuestionsModule,
   ],
 })
 export class AppModule {}
