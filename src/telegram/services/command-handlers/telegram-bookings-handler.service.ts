@@ -1,76 +1,149 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Markup } from 'telegraf';
 import { UsersService } from '../../../users/services/users.service';
 import { BookingsService } from '../../../bookings/bookings.service';
-import { TelegramBaseService } from './telegram-base.service';
-import { TelegramSetupService } from '../telegram-setup.service';
+import { TelegramSenderService } from '../telegram-sender.service';
 import { SearchBookingsDto } from '../../../bookings/dto/requests/search-bookings.dto';
 import { UserRoleType } from '../../../common/enums/user-role-type.enum';
 import { BookingStatus } from '../../../common/enums/booking-status.enum';
 import { CurrencyType } from '../../../common/enums/currency-type.enum';
 import { ListingPeriodType } from '../../../common/enums/listing-period-type.enum';
+import { TelegramPaginationService } from '../telegram-pagination.service';
 
 @Injectable()
-export class TelegramBookingsHandlerService extends TelegramBaseService {
+export class TelegramBookingsHandlerService {
+  private readonly logger = new Logger(TelegramBookingsHandlerService.name);
+
+
   constructor(
-    telegramSetupService: TelegramSetupService,
+    private readonly telegramSenderService: TelegramSenderService,
+    private readonly paginationService: TelegramPaginationService,
     private readonly usersService: UsersService,
     private readonly bookingsService: BookingsService,
-  ) {
-    super(telegramSetupService, TelegramBookingsHandlerService.name);
+  ) {}
+
+
+  async handle(telegramId: number, chatId: number): Promise<void> {
+    try {
+      await this.sendRoleSelection(chatId);
+    } catch (error) {
+      this.logger.error(`Ошибка при запуске хендлера бронирований: ${error.message}`);
+      await this.telegramSenderService.sendMessage(chatId, '❌ Произошла ошибка');
+    }
   }
 
-  async handle(telegramId: number, chatId: number, role: string = 'all', page: number = 1): Promise<void> {
+  
+  async sendRoleSelection(chatId: number): Promise<void> {
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('📤 Я арендатор', 'bookings:role:renter'),
+        Markup.button.callback('📥 Я арендодатель', 'bookings:role:landlord'),
+      ],
+    ]);
+
+    await this.telegramSenderService.sendMessageWithKeyboard(
+      chatId,
+      '📅 *Мои бронирования*\n\nВыберите категорию бронирований:',
+      keyboard
+    );
+  }
+
+  
+  async sendBookingsPage(
+    telegramId: number,
+    chatId: number,
+    role: UserRoleType,
+    page: number,
+    messageId?: number
+  ): Promise<void> {
     try {
+      const user = await this.usersService.findByTelegramId(telegramId);
+      
+      // Подсчет общего количества для пагинации (нужно реализовать методы подсчета с фильтрами в сервисе, 
+      // либо использовать total из findAll, но для пагинации лучше знать заранее)
+      // В данном случае используем findAll, так как он возвращает total
       const searchDto: SearchBookingsDto = {
-        userRole: role === 'landlord' ? UserRoleType.LANDLORD : 
-                  role === 'renter' ? UserRoleType.RENTER : undefined,
-        limit: 5,
-        offset: (page - 1) * 5,
+        userRole: role,
+        limit: this.paginationService.getItemsPerPage(),
+        offset: (page - 1) * this.paginationService.getItemsPerPage(),
       };
 
-      const user = await this.usersService.findByTelegramId(telegramId);
       const result = await this.bookingsService.findAll(searchDto, user.id);
-      
+      const totalPages = this.paginationService.calculateTotalPages(result.total);
+
+      // Валидация страницы
+      if (page < 1 || (page > totalPages && totalPages > 0)) {
+         // Можно выбросить ошибку или просто не обновлять сообщение
+         return; 
+      }
+
       if (result.bookings.length === 0) {
-        const roleText = role === 'landlord' ? 'как у арендодателя' : 
-                         role === 'renter' ? 'как у арендатора' : '';
-        await this.sendMessage(chatId, `📭 У вас пока нет бронирований ${roleText}`);
+        const emptyText = role === UserRoleType.LANDLORD 
+          ? '📭 У вас нет входящих бронирований.' 
+          : '📭 У вас нет активных бронирований.';
+        
+        if (messageId) {
+          // Если это обновление существующего сообщения, убираем кнопки
+          await this.telegramSenderService.editMessageWithKeyboard(chatId, messageId, emptyText, 
+            { 
+              reply_markup: { inline_keyboard: [] } 
+            });
+        } else {
+          await this.telegramSenderService.sendMessage(chatId, emptyText);
+        }
         return;
       }
 
-      let message = `📅 *Ваши бронирования* (стр. ${page})\n\n`;
+      const message = this.buildBookingsMessage(result.bookings, page, result.total, role);
       
-      result.bookings.forEach((booking, index) => {
-        const formattedPrice = this.isFiat(booking.currency) ? Number(booking.totalPrice).toFixed(2) : booking.totalPrice;
-        const formattedPeriod = this.formatPeriod(booking.period, booking.listing.pricePeriod);
-        const isLandlord = booking.listing.user.id === user.id;
-        const otherParty = isLandlord ? 
-          `Арендатор: ${booking.renter.firstName} ${booking.renter.lastName}` :
-          `Арендодатель: ${booking.listing.user.firstName} ${booking.listing.user.lastName}`;
+      // Создаем клавиатуру пагинации, передавая роль в поле 'extra'
+      const roleStr = role === UserRoleType.LANDLORD ? 'landlord' : 'renter';
+      const keyboard = this.paginationService.createPaginationKeyboard(page, totalPages, 'bookings', roleStr);
 
-        message += `${index + 1}. *${booking.listing.title}* ` +
-          `(${isLandlord ? 'У BAC арендуют' : 'ВЫ арендуете'})\n` +
-          `💰 Цена: ${formattedPrice} ${booking.currency}\n` +
-          `🕒 Период: ${formattedPeriod}\n` +
-          `📊 Статус: ${this.getStatusText(booking.status)}\n` +
-          `👤 ${otherParty}\n\n`;
-      });
+      if (messageId) {
+        await this.telegramSenderService.editMessageWithKeyboard(chatId, messageId, message, keyboard);
+      } else {
+        await this.telegramSenderService.sendMessageWithKeyboard(chatId, message, keyboard);
+      }
 
-      message += `Всего бронирований: ${result.total}`;
-
-      await this.sendMarkdownMessage(chatId, message);
     } catch (error) {
       this.logger.error(`Ошибка получения бронирований: ${error.message}`);
-      await this.sendMessage(chatId, '❌ Не удалось загрузить бронирования');
+      if (!messageId) {
+        await this.telegramSenderService.sendMessage(chatId, '❌ Не удалось загрузить бронирования');
+      }
     }
   }
 
-  private isFiat(currency: CurrencyType): boolean {
-    if (currency === CurrencyType.RUB || currency === CurrencyType.USD) {
-      return true;
-    }
-    return false;
+  
+  private buildBookingsMessage(bookings: any[], page: number, total: number, role: UserRoleType): string {
+    const roleTitle = role === UserRoleType.LANDLORD ? 'Входящие бронирования' : 'Мои поездки';
+    let message = `📅 *${roleTitle}* (стр. ${page})\n\n`;
+
+    bookings.forEach((booking, index) => {
+      const formattedPrice = this.isFiat(booking.currency) ? Number(booking.totalPrice).toFixed(2) : booking.totalPrice;
+      const formattedPeriod = this.formatPeriod(booking.period, booking.listing.pricePeriod);
+      
+      const isLandlordView = role === UserRoleType.LANDLORD;
+      const otherParty = isLandlordView ? 
+        `👤 Арендатор: ${booking.renter.firstName} ${booking.renter.lastName}` :
+        `👤 Хост: ${booking.listing.user.firstName} ${booking.listing.user.lastName}`;
+
+      message += `${index + 1}. *${booking.listing.title}*\n` +
+        `💰 Цена: ${formattedPrice} ${booking.currency}\n` +
+        `🕒 Период: ${formattedPeriod}\n` +
+        `📊 Статус: ${this.getStatusText(booking.status)}\n` +
+        `${otherParty}\n\n`;
+    });
+
+    message += `Всего: ${total}`;
+    return message;
   }
+
+  
+  private isFiat(currency: CurrencyType): boolean {
+    return currency === CurrencyType.RUB || currency === CurrencyType.USD;
+  }
+
 
   private formatPeriod(period: string, pricePeriod: ListingPeriodType): string {
     try {
@@ -78,29 +151,23 @@ export class TelegramBookingsHandlerService extends TelegramBaseService {
       if (matches) {
         const startDate = new Date(matches[1]);
         const endDate = new Date(matches[2]);
-        
+
         if (pricePeriod === ListingPeriodType.HOUR) {
-          const start = startDate.toLocaleString('ru-RU');
-          const end = endDate.toLocaleString('ru-RU');
-          return `${start} - ${end}`;    
+          return `${startDate.toLocaleString('ru-RU')} - ${endDate.toLocaleString('ru-RU')}`;    
         }
-
-        const start = startDate.toLocaleDateString('ru-RU');
-        const end = endDate.toLocaleDateString('ru-RU');
-        return `${start} - ${end}`;
+        return `${startDate.toLocaleDateString('ru-RU')} - ${endDate.toLocaleDateString('ru-RU')}`;
       }
-
       return period;
     } catch {
       return period;
     }
   }
 
+  
   private getStatusText(status: BookingStatus): string {
     const statusMap = {
       [BookingStatus.PENDING]: '⏳ Ожидание',
-      [BookingStatus.CONFIRMED]: '✅ Подтверждено', 
-    //   [BookingStatus.ACTIVE]: '🔵 Активно',
+      [BookingStatus.CONFIRMED]: '✅ Подтверждено',
       [BookingStatus.COMPLETED]: '📦 Завершено',
       [BookingStatus.CANCELLED]: '❌ Отменено'
     };

@@ -15,6 +15,8 @@ import { TelegramController } from './telegram.controller';
 import { TelegramService } from './services/telegram.service';
 import { TelegramSetupService } from './services/telegram-setup.service';
 import { TelegramAccountService } from './services/telegram-account.service';
+import { TelegramSenderService } from './services/telegram-sender.service';
+import { TelegramPaginationService } from './services/telegram-pagination.service';
 import { TelegramStartHandlerService } from './services/command-handlers/telegram-start-handler.service';
 import { TelegramProfileHandlerService } from './services/command-handlers/telegram-profile-handler.service';
 import { TelegramListingsHandlerService } from './services/command-handlers/telegram-listings-handler.service';
@@ -40,6 +42,8 @@ import { TelegramSubscriptionHandlerService } from './services/command-handlers/
     TelegramService,
     TelegramSetupService,
     TelegramAccountService,
+    TelegramSenderService,
+    TelegramPaginationService,    
     TelegramVerificationService,
     TelegramStartHandlerService,
     TelegramProfileHandlerService,

@@ -1,18 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UsersService } from '../../../users/services/users.service';
 import { ReviewsService } from '../../../reviews/reviews.service';
-import { TelegramBaseService } from './telegram-base.service';
-import { TelegramSetupService } from '../telegram-setup.service';
+import { TelegramSenderService } from '../telegram-sender.service';
 
 @Injectable()
-export class TelegramProfileHandlerService extends TelegramBaseService {
+export class TelegramProfileHandlerService {
+  private readonly logger = new Logger(TelegramProfileHandlerService.name);
+
+
   constructor(
-    telegramSetupService: TelegramSetupService,
+    private readonly telegramSenderService: TelegramSenderService,
     private readonly usersService: UsersService,
     private readonly reviewsService: ReviewsService,
-  ) {
-    super(telegramSetupService, TelegramProfileHandlerService.name);
-  }
+  ) {}
+
 
   async handle(telegramId: number, chatId: number): Promise<void> {
     try {
@@ -27,23 +28,24 @@ export class TelegramProfileHandlerService extends TelegramBaseService {
         `🔐 2FA: ${user.twoFaEnabled ? '🟢 Включена' : '🔴 Выключена'}\n` +
         `🆔 Верифицирован: ${user.verified ? '✅ Да' : '❌ Нет'}`;
 
-      await this.sendMarkdownMessage(chatId, message);
+      await this.telegramSenderService.sendMarkdownMessage(chatId, message);
     } catch (error) {
       this.logger.error(`Ошибка получения профиля: ${error.message}`);
-      await this.sendMessage(chatId, '❌ He удалось загрузить профиль');
+      await this.telegramSenderService.sendMessage(chatId, '❌ He удалось загрузить профиль');
     }
   }
+
 
   private async getRatingString(rating: number | null, userId: number): Promise<string> {
     if (rating) {
       const reviewsCount = await this.reviewsService.getReviewsCountByUserId(userId);
       const reviewsWord = this.getReviewsWord(reviewsCount);
-      const reviewsString = `(${reviewsCount} ${reviewsWord})`;
-      return `${rating} ${reviewsString}`;
+      return `${rating} (${reviewsCount} ${reviewsWord})`;
     }
     return "ещё нет оценок";
   }
 
+  
   private getReviewsWord(reviewsCount: number): string {
     const reviewsWord = 'отзыв';
     const count100 = reviewsCount % 100;

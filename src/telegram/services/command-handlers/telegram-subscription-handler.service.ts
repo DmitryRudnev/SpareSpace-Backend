@@ -1,20 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UsersService } from '../../../users/services/users.service';
 import { SubscriptionsService } from '../../../subscriptions/subscriptions.service';
-import { TelegramBaseService } from './telegram-base.service';
-import { TelegramSetupService } from '../telegram-setup.service';
+import { TelegramSenderService } from '../telegram-sender.service';
 import { UserSubscription } from '../../../entities/user-subscription.entity';
+import { CurrencyType } from 'src/common/enums/currency-type.enum';
 
 @Injectable()
-export class TelegramSubscriptionHandlerService extends TelegramBaseService {
+export class TelegramSubscriptionHandlerService {
+  private readonly logger = new Logger(TelegramSubscriptionHandlerService.name);
+
+
   constructor(
-    telegramSetupService: TelegramSetupService,
+    private readonly telegramSenderService: TelegramSenderService,
     private readonly usersService: UsersService,
     private readonly subscriptionsService: SubscriptionsService,
-  ) {
-    super(telegramSetupService, TelegramSubscriptionHandlerService.name);
-  }
+  ) {}
 
+  
   async handle(telegramId: number, chatId: number): Promise<void> {
     try {
       const user = await this.usersService.findByTelegramId(telegramId);
@@ -26,12 +28,13 @@ export class TelegramSubscriptionHandlerService extends TelegramBaseService {
       }
 
       const message = this.buildSubscriptionMessage(subscription);
-      await this.sendMarkdownMessage(chatId, message);
+      await this.telegramSenderService.sendMarkdownMessage(chatId, message);
     } catch (error) {
       this.logger.error(`Ошибка получения подписки: ${error.message}`);
-      await this.sendMessage(chatId, '❌ Не удалось загрузить информацию о подписке');
+      await this.telegramSenderService.sendMessage(chatId, '❌ Не удалось загрузить информацию о подписке');
     }
   }
+
 
   private buildSubscriptionMessage(subscription: UserSubscription): string {
     const plan = subscription.plan;
@@ -61,16 +64,18 @@ export class TelegramSubscriptionHandlerService extends TelegramBaseService {
     return message;
   }
 
-  private isFiat(currency: string): boolean {
-    const fiatCurrencies = ['RUB', 'USD'];
-    return fiatCurrencies.includes(currency);
+
+  private isFiat(currency: CurrencyType): boolean {
+    return currency === CurrencyType.RUB || currency === CurrencyType.USD;
   }
+
 
   private formatSubscriptionPeriod(startDate: Date, endDate: Date | null): string {
     const start = new Date(startDate).toLocaleDateString('ru-RU');
     const end = endDate ? new Date(endDate).toLocaleDateString('ru-RU') : '∞';
     return `${start} - ${end}`;
   }
+
 
   private calculateDaysLeft(endDate: Date | null): string {
     if (!endDate) {
@@ -83,6 +88,7 @@ export class TelegramSubscriptionHandlerService extends TelegramBaseService {
     return `⏳ Осталось *${daysLeft}* ${this.getDaysWord(daysLeft)}`;
   }
 
+
   private getDaysWord(daysCount: number): string {
     const count100 = daysCount % 100;
     if (11 <= count100 && count100 <= 14)  return 'дней';
@@ -93,6 +99,7 @@ export class TelegramSubscriptionHandlerService extends TelegramBaseService {
     return 'дней';
   }
 
+  
   private async sendNoSubscriptionMessage(chatId: number): Promise<void> {
     const message = `📭 *У вас нет активной подписки*\n\n` +
       `Для доступа к расширенным возможностям аренды рекомендуем оформить подписку.\n\n` +
@@ -103,6 +110,6 @@ export class TelegramSubscriptionHandlerService extends TelegramBaseService {
       `• Расширенные статистики\n\n` +
       `Оформить подписку можно в веб-приложении в разделе "Подписки".`;
 
-    await this.sendMarkdownMessage(chatId, message);
+    await this.telegramSenderService.sendMarkdownMessage(chatId, message);
   }
 }

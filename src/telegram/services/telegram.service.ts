@@ -1,49 +1,42 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { TelegramWebhookUpdate, TelegramMessage } from '../interfaces';
+import type { TelegramWebhookUpdate, TelegramMessage, TelegramCallbackQuery } from '../interfaces';
 import { UsersService } from '../../users/services/users.service';
-import { TelegramStartHandlerService } from './command-handlers/telegram-start-handler.service';
-import { TelegramProfileHandlerService } from './command-handlers/telegram-profile-handler.service';
-import { TelegramListingsHandlerService } from './command-handlers/telegram-listings-handler.service';
-import { TelegramBookingsHandlerService } from './command-handlers/telegram-bookings-handler.service';
-import { TelegramSubscriptionHandlerService } from './command-handlers/telegram-subscription-handler.service';
-import { TelegramWalletHandlerService } from './command-handlers/telegram-wallet-handler.service';
+import { TelegramStartHandlerService,
+  TelegramProfileHandlerService,
+  TelegramListingsHandlerService,
+  TelegramBookingsHandlerService,
+  TelegramSubscriptionHandlerService,
+  TelegramWalletHandlerService,
+ } from './command-handlers';
+ import { TelegramSenderService } from './telegram-sender.service';
+import { PaginationCallbackData } from '../dto/callback-data.dto';
+import { UserRoleType } from '../../common/enums/user-role-type.enum';
 
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
 
-  /**
-   * Конструктор сервиса Telegram.
-   * @param {UsersService} usersService - Сервис для работы с пользователями.
-   * @param {TelegramStartHandlerService} startHandlerService - Сервис для обработки команды /start.
-   * @param {TelegramProfileHandlerService} profileHandlerService - Сервис для обработки команды /profile.
-   * @param {TelegramListingsHandlerService} listingsHandlerService - Сервис для обработки команды /listings.
-   * @param {TelegramBookingsHandlerService} bookingsHandlerService - Сервис для обработки команды /bookings.
-   * @param {TelegramSubscriptionHandlerService} subscriptionHandlerService - Сервис для обработки команды /subscription.
-   * @param {TelegramWalletHandlerService} walletHandlerService - Сервис для обработки команды /wallet.
-   */
+
   constructor(
-    private readonly usersService: UsersService,
+    private readonly telegramSenderService: TelegramSenderService,
     private readonly startHandlerService: TelegramStartHandlerService,
     private readonly profileHandlerService: TelegramProfileHandlerService,
     private readonly listingsHandlerService: TelegramListingsHandlerService,
     private readonly bookingsHandlerService: TelegramBookingsHandlerService,
     private readonly subscriptionHandlerService: TelegramSubscriptionHandlerService,
     private readonly walletHandlerService: TelegramWalletHandlerService,
-
+    private readonly usersService: UsersService,
   ) {}
 
-  /**
-   * Обрабатывает обновление от Telegram.
-   * @param {TelegramWebhookUpdate} update - Обновление от Telegram.
-   * @returns {Promise<void>} Промис, который разрешается после обработки обновления.
-   */
+
   async handleUpdate(update: TelegramWebhookUpdate): Promise<void> {
     try {
       if (update.message) {
         await this.handleMessage(update.message);
       } else if (update.callback_query) {
         await this.handleCallbackQuery(update.callback_query);
+      } else {
+        this.logger.error('Ещё не реализована обработка данного типа обновления от телеграма');
       }
     } catch (error) {
       this.logger.error(`Ошибка обработки обновления: ${error.message}`, {
@@ -53,12 +46,7 @@ export class TelegramService {
     }
   }
 
-  /**
-   * Обрабатывает входящее сообщение от пользователя.
-   * @param {TelegramMessage} message - Сообщение от Telegram.
-   * @returns {Promise<void>} Промис, который разрешается после обработки сообщения.
-   * @private
-   */
+  
   private async handleMessage(message: TelegramMessage): Promise<void> {
     if (!message.from || !message.text) {
       this.logger.error('Отсутствует информация об отправителе или тексте сообщения');
@@ -70,11 +58,10 @@ export class TelegramService {
     const chatId = message.chat.id;
 
     if (!command.startsWith('/')) {
-      await this.startHandlerService.sendMessage(chatId, 'Команда должна начинаться с "/"');
+      await this.telegramSenderService.sendMessage(chatId, 'Команда должна начинаться с "/"');
       return;
     }
 
-    // Обработка команды /start (не требует привязки аккаунта)
     if (command.startsWith('/start')) {
       const verificationToken = command.split(/\s+/)[1];
       await this.startHandlerService.handle(telegramId, chatId, verificationToken);
@@ -84,55 +71,137 @@ export class TelegramService {
       return;
     }
 
-    // Проверка привязки аккаунта для остальных команд
     const userExists = await this.validateTelegramUser(telegramId, chatId, command);
     if (!userExists) {
       return;
     }
 
-    // Обработка остальных команд
     if (command.startsWith('/profile')) {
       await this.profileHandlerService.handle(telegramId, chatId);
-
     } else if (command.startsWith('/listings')) {
-      const page = this.extractPageNumber(command);
-      await this.listingsHandlerService.handle(telegramId, chatId, page);
-
+      await this.listingsHandlerService.handle(telegramId, chatId);
     } else if (command.startsWith('/bookings')) {
-      const [_, role, pageStr] = command.split(/\s+/);
-      const page = pageStr ? parseInt(pageStr) : 1;
-      await this.bookingsHandlerService.handle(telegramId, chatId, role, page);
-
+      await this.bookingsHandlerService.handle(telegramId, chatId);
     } else if (command.startsWith('/subscription')) {
-        await this.subscriptionHandlerService.handle(telegramId, chatId);
-
+      await this.subscriptionHandlerService.handle(telegramId, chatId);
     } else if (command.startsWith('/wallet')) {
-        await this.walletHandlerService.handle(telegramId, chatId);
-
-      } else {
-      await this.startHandlerService.sendMessage(chatId, 'Неизвестная команда. Используйте /help для списка команд.');
+      await this.walletHandlerService.handle(telegramId, chatId);
+    } else {
+      await this.telegramSenderService.sendMessage(chatId, 'Неизвестная команда. Используйте /help для списка команд.');
     }
   }
 
-  /**
-   * Обрабатывает callback query от кнопок.
-   * @param {any} callbackQuery - Callback query от Telegram.
-   * @returns {Promise<void>} Промис, который разрешается после обработки callback query.
-   * @private
-   */
-  private async handleCallbackQuery(callbackQuery: any): Promise<void> {
-    // TODO: Реализовать обработку callback query для кнопок
-    this.logger.log('Callback query received:', callbackQuery);
+
+  private async handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promise<void> {
+    try {
+      const { id: callbackId, data, from, message } = callbackQuery;
+      const telegramId = from.id;
+      const chatId = message?.chat.id;
+      const messageId = message?.message_id;
+
+      if (!data || !chatId || !messageId) {
+        this.logger.error('Недостаточно данных в callback query');
+        await this.telegramSenderService.answerCallbackQuery(callbackId, '⚠️ Ошибка обработки запроса');
+        return;
+      }
+
+      if (data === 'noop') {
+        await this.telegramSenderService.answerCallbackQuery(callbackId);
+        return;
+      }
+
+      // 1. Обработка выбора роли (нажатие кнопок "Я арендатор" / "Я арендодатель")
+      if (data.startsWith('bookings:role:')) {
+        const userExists = await this.validateTelegramUser(telegramId, chatId, data);
+        if (!userExists) {
+          await this.telegramSenderService.answerCallbackQuery(callbackId, '❌ Сначала привяжите аккаунт');
+          return;
+        }
+         const roleStr = data.split(':')[2];
+         const role = roleStr === 'landlord' ? UserRoleType.LANDLORD : UserRoleType.RENTER;
+         
+         // Загружаем первую страницу для выбранной роли
+         await this.bookingsHandlerService.sendBookingsPage(telegramId, chatId, role, 1, messageId);
+         await this.telegramSenderService.answerCallbackQuery(callbackId);
+         return;
+      }
+
+      // 2. Обработка пагинации (listings или bookings)
+      if (data.startsWith('listings:') || data.startsWith('bookings:')) {
+        const userExists = await this.validateTelegramUser(telegramId, chatId, data);
+        if (!userExists) {
+          await this.telegramSenderService.answerCallbackQuery(callbackId, '❌ Сначала привяжите аккаунт');
+          return;
+        }
+
+        const callbackData = PaginationCallbackData.fromString(data);
+        
+        // Проверяем, не пытаемся ли мы уйти в минус (хотя кнопки должны быть заблокированы)
+        if (callbackData.page < 1) {
+          await this.telegramSenderService.answerCallbackQuery(callbackId, '⚠️ Вы уже на первой странице');
+          return;
+        }
+
+        // --- Обработка объявлений ---
+        if (callbackData.entity === 'listings') {
+          await this.handleListingsPagination(
+            callbackId, chatId, messageId, callbackData.page, telegramId
+          );
+        }
+        
+        // --- Обработка бронирований ---
+        else if (callbackData.entity === 'bookings') {
+          // Извлекаем роль из поля 'extra'
+          const roleStr = callbackData.extra; 
+          const role = roleStr === 'landlord' ? UserRoleType.LANDLORD : UserRoleType.RENTER;
+
+          await this.bookingsHandlerService.sendBookingsPage(
+             telegramId, 
+             chatId, 
+             role, 
+             callbackData.page, 
+             messageId
+          );
+          await this.telegramSenderService.answerCallbackQuery(callbackId);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Ошибка обработки callback query: ${error.message}`);
+      try {
+        await this.telegramSenderService.answerCallbackQuery(callbackQuery.id, '⚠️ Произошла ошибка');
+      } catch (answerError) { /* ignore */ }
+    }
   }
 
-  /**
-   * Проверяет, привязан ли пользователь к аккаунту.
-   * @param {number} telegramId - Идентификатор пользователя в Telegram.
-   * @param {number} chatId - Идентификатор чата.
-   * @param {string} command - Команда, которую пытается выполнить пользователь.
-   * @returns {Promise<boolean>} Промис, который разрешается в true, если пользователь привязан, иначе false.
-   * @private
-   */
+
+  private async handleListingsPagination(
+    callbackId: string,
+    chatId: number,
+    messageId: number,
+    page: number,
+    telegramId: number,
+    extra?: string
+  ): Promise<void> {
+    try {
+      await this.listingsHandlerService.handleCallback(
+        chatId,
+        messageId,
+        page,
+        telegramId
+      );
+      await this.telegramSenderService.answerCallbackQuery(callbackId);
+    } catch (error) {
+      this.logger.warn(`Ошибка пагинации listings: ${error.message}`);
+      
+      if (error.message.includes('первой странице') || error.message.includes('последней странице')) {
+        await this.telegramSenderService.answerCallbackQuery(callbackId, error.message);
+      } else {
+        await this.telegramSenderService.answerCallbackQuery(callbackId, '⚠️ Не удалось загрузить страницу');
+      }
+    }
+  }
+
+  
   private async validateTelegramUser(telegramId: number, chatId: number, command: string): Promise<boolean> {
     try {
       await this.usersService.findByTelegramId(telegramId);
@@ -144,41 +213,17 @@ export class TelegramService {
     }
   }
 
-  /**
-   * Извлекает номер страницы из команды.
-   * @param {string} command - Команда с номером страницы.
-   * @returns {number} Номер страницы, по умолчанию 1.
-   * @private
-   */
-  private extractPageNumber(command: string): number {
-    const match = command.match(/\/\w+\s+(\d+)/);
-    return match ? parseInt(match[1]) : 1;
-  }
-
-  /**
-   * Отправляет сообщение со справкой о доступных командах в указанный чат.
-   * @param {number} chatId - Идентификатор чата, в который отправляется сообщение.
-   * @returns {Promise<void>} Промис, который разрешается после отправки сообщения.
-   * @private
-   */
+  
   private async sendHelpMessage(chatId: number): Promise<void> {
     const message = `🆘 *Доступные команды:*\n\n` +
       `🔹 /start - Начало работы с ботом\n` +
       `👤 /profile - Просмотр профиля\n` +
-      `🏠 /listings *[страница]* - Мои объявления\n` +
-      `📅 /bookings *[роль]* *[страница]* - Мои бронирования\n` +
+      `🏠 /listings - Мои объявления\n` +
+      `📅 /bookings - Мои бронирования\n` +
       `🎫 /subscription - Информация о подписке\n` +
       `💰 /wallet - Баланс и транзакции\n` +
-      `🆘 /help - Эта справка\n\n` +
-      `*Параметры команд:*\n` +
-      `• [[роль]]: all, landlord, renter\n` +
-      `• [[страница]]: номер страницы (например, 2)\n\n` +
-      `*Примеры:*\n` +
-      `🔸 /listings 2 - вторая страница объявлений\n` +
-      `🔸 /bookings landlord - бронирования как арендодатель (стр. 1)\n` +
-      `🔸 /bookings renter 3 - бронирования как арендатор (стр. 3)\n` +
-      `🔸 /wallet - баланс и последние транзакции`;
+      `🆘 /help - Эта справка`;
 
-    await this.startHandlerService.sendMarkdownMessage(chatId, message);
+    await this.telegramSenderService.sendMarkdownMessage(chatId, message);
   }
 }

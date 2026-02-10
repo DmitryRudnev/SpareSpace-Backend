@@ -1,23 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UsersService } from '../../../users/services/users.service';
 import { WalletsService } from '../../../wallets/wallets.service';
-import { TelegramBaseService } from './telegram-base.service';
-import { TelegramSetupService } from '../telegram-setup.service';
+import { TelegramSenderService } from '../telegram-sender.service';
 import { TransactionType } from '../../../common/enums/transaction-type.enum';
-import { PaymentStatus } from '../../../common/enums/payment-status.enum';
 import { WalletBalance } from '../../../entities/wallet-balance.entity';
 import { Transaction } from '../../../entities/transaction.entity';
+import { CurrencyType } from 'src/common/enums/currency-type.enum';
 
 @Injectable()
-export class TelegramWalletHandlerService extends TelegramBaseService {
+export class TelegramWalletHandlerService {
+  private readonly logger = new Logger(TelegramWalletHandlerService.name);
+  
+
   constructor(
-    telegramSetupService: TelegramSetupService,
+    private readonly telegramSenderService: TelegramSenderService,
     private readonly usersService: UsersService,
     private readonly walletsService: WalletsService,
-  ) {
-    super(telegramSetupService, TelegramWalletHandlerService.name);
-  }
+  ) {}
 
+  
   async handle(telegramId: number, chatId: number): Promise<void> {
     try {
       const user = await this.usersService.findByTelegramId(telegramId);
@@ -25,12 +26,13 @@ export class TelegramWalletHandlerService extends TelegramBaseService {
       const transactions = await this.walletsService.findTransactionsByUserId(user.id);
 
       const message = this.buildWalletMessage(balances, transactions);
-      await this.sendMarkdownMessage(chatId, message);
+      await this.telegramSenderService.sendMarkdownMessage(chatId, message);
     } catch (error) {
       this.logger.error(`Ошибка получения кошелька: ${error.message}`);
-      await this.sendMessage(chatId, '❌ Не удалось загрузить информацию о кошельке');
+      await this.telegramSenderService.sendMessage(chatId, '❌ Не удалось загрузить информацию о кошельке');
     }
   }
+
 
   private buildWalletMessage(balances: WalletBalance[], transactions: Transaction[]): string {
     let message = `💰 *Ваш кошелёк*\n\n`;
@@ -72,10 +74,11 @@ export class TelegramWalletHandlerService extends TelegramBaseService {
     return message;
   }
 
-  private isFiat(currency: string): boolean {
-    const fiatCurrencies = ['RUB', 'USD'];
-    return fiatCurrencies.includes(currency);
+
+  private isFiat(currency: CurrencyType): boolean {
+    return currency === CurrencyType.RUB || currency === CurrencyType.USD;
   }
+
 
   private getTransactionEmoji(type: TransactionType): string {
     const emojiMap = {
@@ -86,6 +89,7 @@ export class TelegramWalletHandlerService extends TelegramBaseService {
     };
     return emojiMap[type] || '⚪';
   }
+
 
   private getTypeText(type: TransactionType): string {
     const typeMap = {

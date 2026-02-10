@@ -20,4 +20,7 @@ export default registerAs('telegram', () => ({
       '2a0a:f280::/32',
     ],
   },
+  pagination: {
+    itemsPerPage: parseInt(process.env.TELEGRAM_ITEMS_PER_PAGE || '5', 10),
+  },
 }));
