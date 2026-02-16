@@ -43,6 +43,20 @@ export class BookingsService {
     return { bookings, total, limit: searchDto.limit, offset: searchDto.offset };
   }
 
+
+  async countByRole(userId: number, roleType: UserRoleType): Promise<number> {
+    if (roleType == UserRoleType.RENTER) {
+      return await this.bookingRepository.countBy({
+        renter: { id: userId },
+      });
+    }
+
+    return await this.bookingRepository.countBy({
+      listing: { user: { id: userId } },
+    });
+  }
+
+  
   /**
    * Retrieves a single booking by ID.
    * @param bookingId - The booking ID.
