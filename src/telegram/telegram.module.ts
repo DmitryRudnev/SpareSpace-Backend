@@ -24,6 +24,7 @@ import { TelegramBookingsHandlerService } from './services/command-handlers/tele
 import { TelegramVerificationService } from './services/telegram-verification.service';
 import { TelegramWalletHandlerService } from './services/command-handlers/telegram-wallet-handler.service';
 import { TelegramSubscriptionHandlerService } from './services/command-handlers/telegram-subscription-handler.service';
+import { TelegramNotificationService } from './services/telegram-notification.service';
 
 
 @Module({
@@ -42,9 +43,10 @@ import { TelegramSubscriptionHandlerService } from './services/command-handlers/
     TelegramService,
     TelegramSetupService,
     TelegramAccountService,
-    TelegramSenderService,
-    TelegramPaginationService,    
     TelegramVerificationService,
+    TelegramSenderService,
+    TelegramNotificationService,
+    TelegramPaginationService,
     TelegramStartHandlerService,
     TelegramProfileHandlerService,
     TelegramListingsHandlerService,
@@ -53,6 +55,10 @@ import { TelegramSubscriptionHandlerService } from './services/command-handlers/
     TelegramSubscriptionHandlerService,
   ],
   controllers: [TelegramController],
-  exports: [TelegramService, TelegramAccountService],
+  exports: [
+    TelegramService, 
+    TelegramAccountService, 
+    TelegramNotificationService
+  ],
 })
 export class TelegramModule {}
