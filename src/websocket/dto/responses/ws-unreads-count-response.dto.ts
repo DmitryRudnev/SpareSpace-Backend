@@ -1,5 +1,4 @@
 export class WsUnreadsCountResponseDto {
   conversationId: number;
-  
-  unreadMessagesCount: number;
+  unreadsCount: number;
 }

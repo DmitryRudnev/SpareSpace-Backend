@@ -6,38 +6,47 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  WebSocketServer,
 } from '@nestjs/websockets';
-import { Namespace, Socket } from 'socket.io';
-import { Logger, Injectable } from '@nestjs/common';
+import { Socket, Server } from 'socket.io';
+import { Logger, Injectable, UseFilters } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import type { AuthenticatedSocket } from './interfaces/socket.interface';
+import { WsResponseFactory } from './factories/ws-response.factory';
+import { WsExceptionsFilter } from './filters/ws-exception.filter';
 import { WsAuthMiddleware } from './middlewares/ws-auth.middleware';
 import { ChatService } from '../chat/chat.service';
 import { MessageMapper } from '../chat/mappers/message.mapper';
+import { MessageResponseDto } from '../chat/dto/responses/message-response.dto';
 import { UserStatusService } from '../users/services/user-status.service';
-import { WsResponseFactory } from './factories/ws-response.factory';
+import { UsersService } from '../users/services/users.service';
+import { NotificationType } from '../common/enums/notification-type.enum';
 
-import { 
-  WsJoinRoomRequestDto,
-  WsLeaveRoomRequestDto,
-  WsSendMessageRequestDto,
-  WsMarkAsReadRequestDto,
-  WsSubscribeStatusRequestDto,
-  WsUnsubscribeStatusRequestDto,
-  WsEditMessageRequestDto,
-  WsDeleteMessagesRequestDto,
+import {
+  WsConversationSubscribeRequestDto,
+  WsConversationUnsubscribeRequestDto,
+  WsMessageSendRequestDto,
+  WsMessageReadRequestDto,
+  WsUserStatusSubscribeRequestDto,
+  WsUserStatusUnsubscribeRequestDto,
+  WsMessageEditRequestDto,
+  WsMessageDeleteRequestDto,
 } from './dto/requests';
-import { 
-  WsMessagesReadResponseDto,
+import {
+  WsMessageReadUpdateResponseDto,
   WsResponseDto,
-  WsNewMessageResponseDto,
-  WsNewStatusResponseDto,
-  WsEditMessageResponseDto,
-  WsDeleteMessagesResponseDto,
-  WsLastMessageResponseDto,
-  WsUnreadsCountResponseDto,
+  WsMessageNewResponseDto,
+  WsUserStatusUpdateResponseDto,
+  WsMessageEditedResponseDto,
+  WsMessageDeletedResponseDto,
+  // WsUnreadsCountResponseDto,
+  WsConversationPreviewUpdateResponseDto,
+  WsNotificationNewResponseDto,
 } from './dto/responses';
 
+
+@UseFilters(WsExceptionsFilter)
 @WebSocketGateway({
   namespace: '/',
   cors: {
@@ -51,319 +60,326 @@ import {
 @Injectable()
 export class MainWebSocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(MainWebSocketGateway.name);
-  private server: Namespace;
+  @WebSocketServer() private server: Server;
+  private readonly offlineTimers = new Map<number, NodeJS.Timeout>();
+  private readonly OFFLINE_DELAY = 5000; // 5 секунд задержки
 
   constructor(
-    private readonly chatService: ChatService,
     private readonly wsAuthMiddleware: WsAuthMiddleware,
+    private readonly chatService: ChatService,
+    private readonly usersService: UsersService,
     private readonly userStatusService: UserStatusService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  afterInit(server: Namespace) {
-    this.server = server;
-    this.logger.log('WebSocket gateway initialized');
-    
+
+  afterInit(server: Server) {
+    this.logger.log('WebSocket gateway initialized');    
     server.use((socket: Socket, next) => {
       this.wsAuthMiddleware.use(socket as AuthenticatedSocket, next);
     });
   }
 
-  handleConnection(client: AuthenticatedSocket) {
-    const user = client.data.user;
-    if (user) {
-      this.logger.log(`Client ${client.id} connected via WebSocket (userId: ${user.userId})`);
-      
-      // Устанавливаем онлайн-статус при подключении
-      this.userStatusService.setOnline(user.userId).then(() => {
-        this.notifyUserStatusChange(user.userId, true);  // Уведомляем подписчиков об изменении статуса
-      }).catch((error) => {
-        this.logger.error(`Failed to set online status for user ${user.userId}: ${error.message}`);
-      });
-    } else {
-      this.logger.warn(`Client ${client.id} connected without authentication - this should not happen`);
-      client.disconnect();
+
+  async handleConnection(client: AuthenticatedSocket) {
+    const userId = client.data.user.userId;
+    this.logger.log(`Client ${client.id} (user ${userId}) connectened to the websocket`);
+    const userRoom = `user:${userId}`;
+    const isReconnecting = this.offlineTimers.has(userId);
+
+    // Отменяем таймер офлайна, если он был запущен
+    if (isReconnecting) {
+      clearTimeout(this.offlineTimers.get(userId));
+      this.offlineTimers.delete(userId);
+    }
+    
+    await client.join(userRoom);
+    this.logger.log(`Client ${client.id} (user ${userId}) joined room ${userRoom}`);
+
+    // Шлем Online только если:
+    // 1. Это первый сокет
+    // 2. И это НЕ быстрое переподключение (таймера не было, юзер реально был Offline)
+    const sockets = await this.server.in(userRoom).fetchSockets();
+    if (sockets.length === 1 && !isReconnecting) {
+      await this.userStatusService.setOnline(userId);
+      this.notifyUserStatusUpdate(userId, true, new Date());
     }
   }
 
-  handleDisconnect(client: AuthenticatedSocket) {
-    const user = client.data.user;
-    if (user) {
-      this.logger.log(`Client ${client.id} disconnected (userId: ${user.userId})`);
 
-      // Устанавливаем офлайн-статус при отключении
-      this.userStatusService.setOffline(user.userId).then(() => {
-        this.notifyUserStatusChange(user.userId, false);  // Уведомляем подписчиков об изменении статуса
-      }).catch((error) => {
-        this.logger.error(`Failed to set offline status for user ${user.userId}: ${error.message}`);
-      });
+  async handleDisconnect(client: AuthenticatedSocket) {
+    const userId = client.data.user.userId;
+    this.logger.log(`Client ${client.id} (user ${userId}) disconnectened from the websocket`);
+
+    const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+    
+    // Если сокетов в комнате не осталось — планируем переход в офлайн
+    if (sockets.length === 0) {
+      const timer = setTimeout(async () => {
+        await this.userStatusService.setOffline(userId);
+        this.notifyUserStatusUpdate(userId, false, new Date());
+        this.offlineTimers.delete(userId);
+      }, this.OFFLINE_DELAY);
+
+      this.offlineTimers.set(userId, timer);
     }
   }
 
-  @SubscribeMessage('chat:join')
-  async handleJoinRoom(
-    @MessageBody() data: WsJoinRoomRequestDto,
+
+  @SubscribeMessage('conversation:subscribe')
+  async handleConversationSubscribe(
+    @MessageBody() data: WsConversationSubscribeRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
-      const userId = client.data.user.userId;
-      const { conversationId } = data;
-
-      // Подключаем клиента к комнате
-      await this.chatService.verifyConversationAccess(conversationId, userId);
-      client.join(`chat:${conversationId}`);
-      this.logger.log(`User ${userId} joined room ${conversationId}`);
-      
-      // Сразу же шлём клиенту количество непрочитанных сообщений
-      const unreadMessageIds = await this.chatService.getUnreadMessageIds(conversationId, userId, false);
-      const unreadMessagesCount = unreadMessageIds.length;
-      const unreadsResponse: WsUnreadsCountResponseDto = { conversationId, unreadMessagesCount };
-      client.emit('unreads', unreadsResponse);
-
-      // Сразу же шлём клиенту последнее сообщение
-      const message = await this.chatService.getLastMessage(conversationId);
-      const lastMessage = message ? MessageMapper.toResponseDto(message) : null;
-      const lastMessageResponse: WsLastMessageResponseDto = { conversationId, lastMessage };
-      client.emit('last-message', lastMessageResponse);
-
+      await this.chatService.verifyConversationAccess(data.conversationId, client.data.user.userId);
+      await client.join(`conversation:${data.conversationId}`);
+      this.logger.log(`User ${client.data.user.userId} joined room conversation:${data.conversationId}`);
       return WsResponseFactory.success();
     } 
     catch (error) {
-      this.logger.error(`Error in chat:join : ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
 
-  @SubscribeMessage('chat:leave')
-  async handleLeaveRoom(
-    @MessageBody() data: WsLeaveRoomRequestDto,
+
+  @SubscribeMessage('conversation:unsubscribe')
+  async handleConversationUnsubscribe(
+    @MessageBody() data: WsConversationUnsubscribeRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
-      const userId = client.data.user.userId;
-      const { conversationId } = data;
-      await this.chatService.verifyConversationAccess(data.conversationId, userId);
-      client.leave(`chat:${conversationId}`);
-      
-      this.logger.log(`User ${userId} left room ${conversationId}`);
+      await client.leave(`conversation:${data.conversationId}`);
+      this.logger.log(`User ${client.data.user.userId} left room conversation:${data.conversationId}`);
       return WsResponseFactory.success();
-    }
+    } 
     catch (error) {
-      this.logger.error(`Error in chat:leave: ${error.message}`, error.stack);
       return WsResponseFactory.error(error);
     }
   }
 
+
   @SubscribeMessage('message:send')
   async handleSendMessage(
-    @MessageBody() data: WsSendMessageRequestDto,
+    @MessageBody() data: WsMessageSendRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
       const senderId = client.data.user.userId;
-      const { conversationId, text } = data;
-      
-      // Отправляем новое сообщение
-      await this.chatService.verifyConversationAccess(conversationId, senderId);
-      const message = await this.chatService.sendMessage(conversationId, senderId, text);
-      const messageResponse = MessageMapper.toResponseDto(message);
-      const newMessageResponse: WsNewMessageResponseDto = { 
-        conversationId,
-        message: messageResponse,
-      };
-      client.to(`chat:${conversationId}`).emit('message:new', newMessageResponse);
-      this.logger.log(`User ${senderId} sent message to conversation ${conversationId}`);
+      await this.chatService.verifyConversationAccess(data.conversationId, senderId);
 
-      // Уведомляем подписчиков о новом последнем сообщении
-      const lastMessageResponse: WsLastMessageResponseDto = { 
-        conversationId,
-        lastMessage: messageResponse,
-      };
-      client.to(`chat:${conversationId}`).emit('last-message', lastMessageResponse);
+      const message = await this.chatService.sendMessage(data.conversationId, senderId, data.text);
+      const messageDto = MessageMapper.toResponseDto(message);
+      const recipientId = await this.chatService.getOtherParticipantId(data.conversationId, senderId);
 
-      // Уведомляем подписчиков о новом количестве непрочитанных сообщений
-      const unreadMessageIds = await this.chatService.getUnreadMessageIds(conversationId, senderId, true);
-      const unreadMessagesCount = unreadMessageIds.length;
-      const unreadsResponse: WsUnreadsCountResponseDto = { conversationId, unreadMessagesCount };
-      client.to(`chat:${conversationId}`).emit('unreads', unreadsResponse);
-      
-      return WsResponseFactory.successWithData({ message: messageResponse });
-    }
+      await this.emitMessageNew(data.conversationId, recipientId, messageDto, client);  
+      return WsResponseFactory.successWithData({ message: messageDto });
+    } 
     catch (error) {
-      this.logger.error(`Error in message:send : ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
 
+
   @SubscribeMessage('message:read')
-  async handleMarkAsRead(
-    @MessageBody() data: WsMarkAsReadRequestDto,
+  async handleReadMessages(
+    @MessageBody() data: WsMessageReadRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
       const userId = client.data.user.userId;
       const { conversationId, messageIds } = data;
-      
-      // Помечаем сообщения прочитанными
       await this.chatService.verifyConversationAccess(conversationId, userId);
-      await this.chatService.markMessagesAsRead(conversationId, userId, messageIds);
-      const response: WsMessagesReadResponseDto = {
-        conversationId,
-        userId,
-        messageIds
-      };
-      client.to(`chat:${conversationId}`).emit('message:read-update', response);
-      this.logger.log(`User ${userId} marked messages as read in conversation ${conversationId}`);
 
-      // Обновляем последнее сообщение, если его тоже пометили прочитанным
-      const lastMessageId = await this.chatService.getLastMessageId(conversationId);
-      if (lastMessageId && messageIds?.includes(lastMessageId)) {
-        const message = await this.chatService.getLastMessage(conversationId);
-        const lastMessage = message ? MessageMapper.toResponseDto(message) : null;
-        const lastMessageResponse: WsLastMessageResponseDto = {
-          conversationId,
-          lastMessage,
-        };
-        client.to(`chat:${conversationId}`).emit('last-message', lastMessageResponse);
+      const lastMessageReadBefore = (await this.chatService.getLastMessage(conversationId))?.isRead;
+      await this.chatService.markMessagesAsRead(conversationId, userId, messageIds);
+      const lastMessageRead = (await this.chatService.getLastMessage(conversationId))?.isRead;
+
+      // Если прочитано последнее сообщение, обновляем превью у отправителя
+      if (lastMessageRead !== lastMessageReadBefore) {
+        const recipientId = await this.chatService.getOtherParticipantId(conversationId, userId);
+        await this.notifyConversationPreviewUpdate(recipientId, conversationId);
+        await this.notifyConversationPreviewUpdate(userId, conversationId);
       }
 
+      client.to(`conversation:${conversationId}`).emit('message:read:update', {
+        conversationId,
+        userId: userId,
+        messageIds,
+      } as WsMessageReadUpdateResponseDto);
+      this.logger.log(`User ${userId} emitted message:read:update to room conversation:${conversationId}`);
       return WsResponseFactory.success();
     } 
     catch (error) {
-      this.logger.error(`Error in message:read: ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
+
 
   @SubscribeMessage('message:edit')
   async handleEditMessage(
-    @MessageBody() data: WsEditMessageRequestDto,
+    @MessageBody() data: WsMessageEditRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
-      const { messageId, newText, conversationId } = data;
       const userId = client.data.user.userId;
-      
-      // Редактируем сообщение
+      const { conversationId, messageId, newText } = data;
       await this.chatService.verifyConversationAccess(conversationId, userId);
       await this.chatService.verifyMessageOwnership([messageId], conversationId, userId);
-      const editedMessage = await this.chatService.editMessage(messageId, newText);
-      const messageResponse = MessageMapper.toResponseDto(editedMessage);
-      const response: WsEditMessageResponseDto = {
-        conversationId,
-        message: messageResponse,
-      };
-      client.to(`chat:${conversationId}`).emit('message:edited', response);
-      this.logger.log(`User ${userId} edited message ${data.messageId}`);
 
-      // Обновляем последнее сообщение, если отредактировали его
+      const message = await this.chatService.editMessage(messageId, newText);
+      const messageDto = MessageMapper.toResponseDto(message);
+
       const lastMessageId = await this.chatService.getLastMessageId(conversationId);
-      if (messageId === lastMessageId) {
-        const lastMessageResponse: WsLastMessageResponseDto = {
-          conversationId,
-          lastMessage: messageResponse,
-        };
-        client.to(`chat:${conversationId}`).emit('last-message', lastMessageResponse);
+      if (lastMessageId === messageId) {
+        const recipientId = await this.chatService.getOtherParticipantId(conversationId, userId);
+        await this.notifyConversationPreviewUpdate(recipientId, conversationId);
+        await this.notifyConversationPreviewUpdate(userId, conversationId);
       }
 
-      return WsResponseFactory.successWithData({ message: messageResponse });
-    } 
+      client.to(`conversation:${conversationId}`).emit('message:edited', { 
+        conversationId, 
+        message: messageDto 
+      } as WsMessageEditedResponseDto);
+      this.logger.log(`User ${userId} emitted message:edited to room conversation:${conversationId}`);
+      return WsResponseFactory.successWithData({ message: messageDto });
+    }
     catch (error) {
-      this.logger.error(`Error in message:edit: ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
 
+
   @SubscribeMessage('message:delete')
   async handleDeleteMessages(
-    @MessageBody() data: WsDeleteMessagesRequestDto,
+    @MessageBody() data: WsMessageDeleteRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
       const userId = client.data.user.userId;
       const { conversationId, messageIds } = data;
-
-      // Сразу сохраняем данные перед удалением сообщений
-      const lastMessageId = await this.chatService.getLastMessageId(conversationId);
-      const unreadMessagesIds = await this.chatService.getUnreadMessageIds(conversationId, userId, true);
-
-      // Удаляем сообщения
-      await this.chatService.verifyConversationAccess(conversationId, userId);
       await this.chatService.verifyMessageOwnership(messageIds, conversationId, userId);
+
+      const unreadIdsBefore = await this.chatService.getUnreadMessageIds(conversationId, userId, true);
+      const hasDeletedUnread = messageIds.some(id => unreadIdsBefore.includes(id));
+      const lastMessageIdBefore = await this.chatService.getLastMessageId(conversationId);
+      const isLastDeleted = lastMessageIdBefore ? messageIds.includes(lastMessageIdBefore) : false;
+
       await this.chatService.deleteMessages(messageIds, conversationId);
-      const response: WsDeleteMessagesResponseDto = { conversationId, deletedMessageIds: messageIds };
-      client.to(`chat:${conversationId}`).emit('message:deleted', response);
-      this.logger.log(`User ${userId} deleted ${messageIds.length} messages`);
-      
-      // Обновляем последнее сообщение, если удалили его
-      if (lastMessageId && messageIds.includes(lastMessageId)) {
-        const newLastMessage = await this.chatService.getLastMessage(conversationId);
-        const messageResponse = newLastMessage ? MessageMapper.toResponseDto(newLastMessage) : null;
-        const lastMessageResponse: WsLastMessageResponseDto = { conversationId, lastMessage: messageResponse };
-        client.to(`chat:${conversationId}`).emit('last-message', lastMessageResponse);
+
+      if (isLastDeleted || hasDeletedUnread) {
+        const recipientId = await this.chatService.getOtherParticipantId(conversationId, userId);
+        await this.notifyConversationPreviewUpdate(recipientId, conversationId);
+        await this.notifyConversationPreviewUpdate(userId, conversationId);
       }
 
-      // Обновляем количество непрочитанных сообщений, если удалили хоть одно из них
-      if (unreadMessagesIds.some(id => messageIds.includes(id))) {
-        const newUnreadMessageIds = await this.chatService.getUnreadMessageIds(conversationId, userId, true);
-        const unreadMessagesCount = newUnreadMessageIds.length;
-        const unreadsResponse: WsUnreadsCountResponseDto = { conversationId, unreadMessagesCount };
-        client.to(`chat:${conversationId}`).emit('unreads', unreadsResponse);
-      }
-
+      client.to(`conversation:${conversationId}`).emit('message:deleted', {
+        conversationId,
+        deletedMessageIds: messageIds
+      } as WsMessageDeletedResponseDto);
+      this.logger.log(`User ${userId} emitted message:deleted to room conversation:${conversationId}`);
       return WsResponseFactory.success();
     } 
     catch (error) {
-      this.logger.error(`Error in message:delete: ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
 
+
+  private async emitMessageNew(
+    conversationId: number, 
+    recipientId: number, 
+    messageDto: MessageResponseDto,
+    senderSocket: AuthenticatedSocket,
+  ): Promise<void> {
+    await this.notifyConversationPreviewUpdate(recipientId, conversationId);
+    await this.notifyConversationPreviewUpdate(senderSocket.data.user.userId, conversationId);
+
+    // Всегда отправляем в комнату беседы - на тот случай, если отправитель сидит в этом же чате с другого устройства
+    const conversationRoom = `conversation:${conversationId}`;
+    senderSocket.to(conversationRoom).emit('message:new', { 
+      conversationId,
+      message: messageDto
+    } as WsMessageNewResponseDto);
+    this.logger.log(`User ${senderSocket.data.user.userId} emitted message:new to room ${conversationRoom}`);
+
+    // const unreadIds = await this.chatService.getUnreadMessageIds(conversationId, recipientId, false);
+    // senderSocket.to(conversationRoom).emit('unreads:count', { 
+    //   conversationId, 
+    //   unreadsCount: unreadIds.length 
+    // } as WsUnreadsCountResponseDto);
+    // this.logger.log(`User ${senderSocket.data.user.userId} emitted unreads:count to room ${conversationRoom}`);
+    
+    const conversationSockets = await this.server.in(conversationRoom).fetchSockets();
+    const isInConversation = conversationSockets.some(
+      (s) => (s as unknown as AuthenticatedSocket).data.user.userId == recipientId
+    );
+    if (!isInConversation) {
+      // Если пользователя нет в конкретном чате — делегируем всё системе уведомлений
+      const conversation = await this.chatService.findConversationById(conversationId);
+      this.eventEmitter.emit('notification.signal', {
+        userId: recipientId,
+        type: NotificationType.MESSAGE_NEW,
+        referenceId: conversationId, // ID чата, чтобы фронтенд знал куда перейти
+        payload: {
+          messageId: messageDto.id,
+          conversationId,
+          senderId: messageDto.sender.id,
+          senderName: messageDto.sender.firstName,
+          text: messageDto.text,
+          listingId: conversation.listing?.id,
+          listingTitle: conversation.listing?.title,
+        },
+      });
+    }
+  }
+
+
+  private async notifyConversationPreviewUpdate(userId: number, conversationId: number): Promise<void> {
+    const lastMessage = await this.chatService.getLastMessage(conversationId);
+    const unreadIds = await this.chatService.getUnreadMessageIds(conversationId, userId, false);
+    
+    this.server.to(`user:${userId}`).emit('conversation:preview:update', {
+      conversationId,
+      unreadsCount: unreadIds.length,
+      lastMessage: lastMessage ? MessageMapper.toResponseDto(lastMessage) : null
+    } as WsConversationPreviewUpdateResponseDto);
+    this.logger.log(`conversation:preview:update emitted to room user:${userId}`);
+  }
+
+
   @SubscribeMessage('user:status:subscribe')
-  async handleSubscribeToUserStatus(
-    @MessageBody() data: WsSubscribeStatusRequestDto,
+  async handleUserStatusSubscribe(
+    @MessageBody() data: WsUserStatusSubscribeRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
       const subscriberId = client.data.user.userId;
-      const targetUserId = data.userId;
+      const { userId: targetUserId } = data;
+      await this.usersService.validateUserExistence(targetUserId);
 
-      // Подключаем клиента к комнате
       client.join(`user:status:${targetUserId}`);      
-      this.logger.log(`User ${subscriberId} subscribed to status of user ${targetUserId}`);
-      
-      // Сразу отправляем клиенту данные о статусе другого пользователя
-      const status = await this.userStatusService.getUserStatus(targetUserId);
-      const response: WsNewStatusResponseDto = {
-        userId: targetUserId,
-        isOnline: status.isOnline,
-        lastSeenAt: status.lastSeenAt.toISOString()
-      };
-      client.emit('user:status', response);
-
+      this.logger.log(`User ${subscriberId} joined room user:status:${targetUserId}`);
       return WsResponseFactory.success();
-    } 
+    }
     catch (error) {
       this.logger.error(`Error in user:status:subscribe: ${error.message}`);
       return WsResponseFactory.error(error);
     }
   }
 
-  /**
-   * Отписка от статуса пользователя
-   */
+
   @SubscribeMessage('user:status:unsubscribe')
-  async handleUnsubscribeFromUserStatus(
-    @MessageBody() data: WsUnsubscribeStatusRequestDto,
+  async handleUserStatusUnsubscribe(
+    @MessageBody() data: WsUserStatusUnsubscribeRequestDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<WsResponseDto> {
     try {
       const subscriberId = client.data.user.userId;
-      const targetUserId = data.userId;
+      const { userId: targetUserId } = data;
 
-      // Отключаем клиента от комнаты
       client.leave(`user:status:${targetUserId}`);
-      this.logger.log(`User ${subscriberId} unsubscribed from status of user ${targetUserId}`);
-
+      this.logger.log(`User ${subscriberId} left room user:status:${targetUserId}`);
       return WsResponseFactory.success();
     }
     catch (error) {
@@ -372,23 +388,33 @@ export class MainWebSocketGateway implements OnGatewayInit, OnGatewayConnection,
     }
   }
 
-  /**
-   * Уведомление подписчиков об изменении статуса пользователя
-   */
-  private async notifyUserStatusChange(userId: number, isOnline: boolean) {
+  
+  private async notifyUserStatusUpdate(
+    userId: number, 
+    isOnline: boolean, 
+    lastSeenAt: Date
+  ): Promise<void> {
     try {
-      // Получаем актуальные данные о статусе пользователя и рассылаем событие всем подписчикам
-      const status = await this.userStatusService.getUserStatus(userId);
-      const response: WsNewStatusResponseDto = {
+      this.server.to(`user:status:${userId}`).emit('user:status:update', {
         userId,
-        isOnline: status.isOnline,
-        lastSeenAt: status.lastSeenAt.toISOString()
-      };
-      this.server.to(`user:status:${userId}`).emit('user:status', response);
-      this.logger.log(`User ${userId} status changed to ${isOnline ? 'online' : 'offline'}`);
-    } 
-    catch (error) {
-      this.logger.error(`Failed to notify status change for user ${userId}: ${error.message}`);
+        isOnline,
+        lastSeenAt: lastSeenAt.toISOString(),
+      } as WsUserStatusUpdateResponseDto);
+      this.logger.log(`user:status:update(isOnline: ${isOnline}) emitted to room user:status:${userId}`);
     }
+    catch (error) {
+      this.logger.error(`Failed to notify status update for user ${userId}: ${error.message}`);
+    }
+  }
+
+
+  async isOnline(userId: number): Promise<boolean> {
+    return (await this.server.in(`user:${userId}`).fetchSockets()).length > 0;
+  }
+
+
+  async sendNotificationToUser(userId: number, payload: WsNotificationNewResponseDto): Promise<void> {
+    this.server.to(`user:${userId}`).emit('notification:new', payload);
+    this.logger.log(`notification:new emitted to room user:${userId}`);
   }
 }

@@ -33,6 +33,6 @@ export class WsErrorFactory {
     if (exception instanceof MessageNotFoundException) {
       return this.create('MessageNotFound', exception.message, 404);
     }
-    return this.create('InternalError', 'Internal server error', 500);
+    return this.create('InternalError', exception.message, 500);
   }
 }

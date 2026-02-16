@@ -1,6 +1,6 @@
 import { IsInt, IsOptional, Min, IsArray, ArrayMinSize } from 'class-validator';
 
-export class WsMarkAsReadRequestDto {
+export class WsMessageReadRequestDto {
   @IsInt()
   @Min(1)
   conversationId: number;
@@ -10,5 +10,5 @@ export class WsMarkAsReadRequestDto {
   @ArrayMinSize(1)
   @IsInt({ each: true })
   @Min(1, { each: true })
-  messageIds?: number[];
+  messageIds?: number[];  // Если не указано, считаем все сообщения в чате прочитанными
 }

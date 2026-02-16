@@ -1,6 +1,6 @@
 import { IsInt, Min } from 'class-validator';
 
-export class WsSubscribeStatusRequestDto {
+export class WsUserStatusSubscribeRequestDto {
   @IsInt()
   @Min(1)
   userId: number;

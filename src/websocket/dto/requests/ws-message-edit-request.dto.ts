@@ -1,6 +1,6 @@
 import { IsInt, IsString, Min, Length } from 'class-validator';
 
-export class WsEditMessageRequestDto {
+export class WsMessageEditRequestDto {
   @IsInt()
   @Min(1)
   conversationId: number;

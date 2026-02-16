@@ -1,7 +1,7 @@
 import { MessageResponseDto } from '../../../chat/dto/responses/message-response.dto';
 
-export class WsLastMessageResponseDto {
+export class WsConversationPreviewUpdateResponseDto {
   conversationId: number;
-  
+  unreadsCount: number;
   lastMessage: MessageResponseDto | null;
 }

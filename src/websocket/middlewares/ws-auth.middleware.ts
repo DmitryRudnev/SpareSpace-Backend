@@ -14,22 +14,18 @@ export class WsAuthMiddleware {
 
   async use(client: AuthenticatedSocket, next: (err?: Error) => void) {
     try {
-      this.logger.log(`Authenticating WebSocket connection: ${client.id}`);
-
       // Получаем токен из handshake
       const token = client.handshake.auth?.token || 
                    client.handshake.headers?.authorization?.replace('Bearer ', '') ||
                    client.handshake.query?.token as string;
-      this.logger.log(`Token received: ${token ? 'yes' : 'no'}`);
       if (!token) {
-        this.logger.warn(`No token provided for connection: ${client.id}`);
-        throw new Error('Authentication token not provided');
+        throw new Error(`No token provided for connection; client.id: ${client.id}`);
       }
 
       // Валидируем access токен
       const payload = this.jwtService.verify(token);
       if (!payload.sub || isNaN(payload.sub)) {
-        throw new Error('Invalid token payload');
+        throw new Error(`Invalid token payload; client.id: ${client.id}`);
       }
       
       // Валидируем ID пользователя
@@ -40,29 +36,21 @@ export class WsAuthMiddleware {
       catch (error) {
         throw new Error(error.message);
       }
-  
-      // Валидируем роли пользователя
-      const roles = await this.userService.getUserRoles(userId);
-      if (!roles || roles.length === 0) {
-        throw new Error('User has no assigned roles');
+
+      if (!payload.roles || payload.roles.length === 0) {
+        throw new Error(`User ${userId} has no assigned roles`);
       }
 
       // Сохраняем пользователя в data сокета
       client.data.user = {
         userId: parseInt(payload.sub, 10),
-        roles: payload.roles || []
+        roles: payload.roles
       };
-      this.logger.log(`User ${client.data.user.userId} authenticated via WebSocket`);
+      this.logger.log(`User ${client.data.user.userId} successfully authenticated via WebSocket; client.id: ${client.id}`);
       next();
     } 
     catch (error) {
       this.logger.error(`WebSocket authentication failed: ${error.message}`);
-      if (error.name === 'JsonWebTokenError') {
-        this.logger.error(`JWT Error: ${error.message}`);
-      }
-      if (error.name === 'TokenExpiredError') {
-        this.logger.error('JWT Token expired');
-      }
       return next(new Error('Authentication failed'));
     }
   }

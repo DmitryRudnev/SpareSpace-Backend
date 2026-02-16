@@ -1,6 +1,6 @@
 import { IsInt, IsArray, ArrayMinSize, Min } from 'class-validator';
 
-export class WsDeleteMessagesRequestDto {
+export class WsMessageDeleteRequestDto {
   @IsInt()
   @Min(1)
   conversationId: number;
