@@ -62,6 +62,19 @@ export class WalletsService {
     return this.balanceRepository.find({ where });
   }
 
+  /**
+   * Возвращает общее количество транзакций пользователя.
+   * @param userId - ID пользователя.
+   * @returns Количество транзакций.
+   */
+  async countTransactions(userId: number): Promise<number> {
+    return await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .innerJoin('transaction.wallet', 'wallet')
+      .where('wallet.user_id = :userId', { userId })
+      .getCount();
+  }
+
   async findTransactionsByUserId(userId: number, limit: number = 5, offset: number = 0): Promise<Transaction[]> {
     const wallet = await this.getOrCreateWallet(userId);
     return this.transactionRepository.find({
