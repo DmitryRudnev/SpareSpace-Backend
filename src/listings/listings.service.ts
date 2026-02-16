@@ -88,6 +88,18 @@ export class ListingsService {
   }
 
   /**
+   * Подсчитывает общее количество объявлений пользователя.
+   * @param userId - ID пользователя.
+   * @returns Количество объявлений.
+   */
+  async countUserListings(userId: number): Promise<number> {
+    return await this.listingRepository.countBy({
+      user: { id: userId },
+      // status: ListingStatus.ACTIVE,
+    });
+  }
+
+  /**
    * Creates a new listing.
    * @param createDto - The creation DTO.
    * @param userId - The ID of the creating user.
