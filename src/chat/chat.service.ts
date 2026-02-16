@@ -444,6 +444,17 @@ export class ChatService {
     return messages.map(msg => msg.id);
   }
 
+  async getOtherParticipantId(conversationId: number, userId: number): Promise<number> {
+    const conversation = await this.findConversationById(conversationId);
+    if (userId == conversation.participant1.id) {
+      return conversation.participant2.id;
+    } 
+    else if (userId == conversation.participant2.id) {
+      return conversation.participant1.id;
+    }
+    throw new ConversationAccessDeniedException(conversation.id, userId);
+  }
+
   // ==================== SHARED PRIVATE METHODS ====================
 
   /**
