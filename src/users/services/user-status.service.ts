@@ -25,7 +25,7 @@ export class UserStatusService {
           lastSeenAt: new Date()
         }
       );
-      this.logger.log(`User ${userId} is now online`);
+      // this.logger.log(`User ${userId} is now online`);
     } catch (error) {
       this.logger.error(`Failed to set online status for user ${userId}:`, error);
       // В реальном проекте нужно бросить кастомную ошибку
@@ -45,7 +45,7 @@ export class UserStatusService {
           lastSeenAt: new Date()
         }
       );
-      this.logger.log(`User ${userId} is now offline`);
+      // this.logger.log(`User ${userId} is now offline`);
     } catch (error) {
       this.logger.error(`Failed to set offline status for user ${userId}:`, error);
       throw new Error(`Failed to set offline status: ${error.message}`);
@@ -83,7 +83,7 @@ export class UserStatusService {
 
       return {
         isOnline: user.isOnline,
-        lastSeenAt: user.lastSeenAt || new Date(),
+        lastSeenAt: user.lastSeenAt,
       };
     } catch (error) {
       this.logger.error(`Failed to get status for user ${userId}:`, error);
