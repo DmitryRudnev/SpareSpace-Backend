@@ -92,9 +92,12 @@ export class TelegramStartHandlerService {
 
       this.logger.log(`Отвязывание Telegram ${telegramId} от аккаунта ${existingUser.id}`);
       await this.usersService.updateTelegramId(existingUser.id, null);
+      await this.usersService.updateTelegramChatId(existingUser.id, null);
+      
       
       this.logger.log(`Привязывание Telegram ${telegramId} к аккаунту ${userFromToken.id}`);
       await this.usersService.updateTelegramId(userFromToken.id, telegramId);
+      await this.usersService.updateTelegramChatId(userFromToken.id, chatId);
       
       await this.sendAccountRelinkedMessage(chatId, userFromToken.firstName);
       this.logger.log(`Успешная перепривязка Telegram ${telegramId} с аккаунта ${existingUser.id} на ${userFromToken.id}`);
@@ -120,6 +123,7 @@ export class TelegramStartHandlerService {
     try {
       const user = await this.verificationService.verifyToken(token, telegramId);
       await this.usersService.updateTelegramId(user.id, telegramId);
+      await this.usersService.updateTelegramChatId(user.id, chatId);
       await this.sendWelcomeMessage(chatId, user.firstName);
       this.logger.log(`Успешная привязка нового пользователя ${telegramId} к аккаунту ${user.id}`);
     } catch (error) {

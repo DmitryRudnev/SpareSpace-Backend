@@ -17,6 +17,9 @@ export class User {
   @Column({ type: 'bigint', nullable: true })
   telegramId: number | null;
 
+  @Column({ type: 'bigint', nullable: true })
+  telegramChatId: number | null;
+
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 

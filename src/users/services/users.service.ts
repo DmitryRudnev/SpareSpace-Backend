@@ -29,6 +29,18 @@ export class UsersService {
     }
     return user;
   }
+
+  async userExists(userId: number): Promise<boolean> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    return !!user;
+  }
+
+  async validateUserExistence(userId: number): Promise<void> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+  }
   
   /**
    * Finds user by telegram ID
@@ -90,6 +102,12 @@ export class UsersService {
   async updateTelegramId(userId: number, newTelegramId: number | null): Promise<User> {
     const user = await this.findById(userId);
     user.telegramId = newTelegramId;
+    return this.userRepository.save(user);
+  }
+
+  async updateTelegramChatId(userId: number, newTelegramChatId: number | null): Promise<User> {
+    const user = await this.findById(userId);
+    user.telegramChatId = newTelegramChatId;
     return this.userRepository.save(user);
   }
 
