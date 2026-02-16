@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDa
 import { User } from './user.entity';
 import { NotificationType } from '../common/enums/notification-type.enum';
 import { NotificationChannel } from '../common/enums/notification-channel.enum';
-import { NotificationStatus } from '../common/enums/notification-status.enum';
+import { AnyNotificationPayload } from '../common/interfaces/notification-payloads.interface';
 
 @Entity('notifications')
 export class Notification {
@@ -16,17 +16,17 @@ export class Notification {
   @Column({ type: 'enum', enum: NotificationType, })
   type: NotificationType;
 
-  @Column({ type: 'text' })
-  content: string;
-
   @Column({ type: 'enum', enum: NotificationChannel, })
   channel: NotificationChannel;
 
-  @Column({ default: false })
-  isSent: boolean;
+  @Column({ type: 'bigint', nullable: true })
+  referenceId: number | null;
 
-  @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.UNREAD, })
-  status: NotificationStatus;
+  @Column({ type: 'jsonb', nullable: true })
+  payload: AnyNotificationPayload | null;
+
+  @Column({ default: false })
+  isRead: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

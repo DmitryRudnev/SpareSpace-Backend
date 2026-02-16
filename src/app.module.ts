@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import * as path from 'path';
 
@@ -19,15 +20,17 @@ import { TelegramModule } from './telegram/telegram.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { QuestionsModule } from './questions/questions.module';
+import { DevicesModule } from './devices/devices.module';
 import telegramConfig from './telegram/config/telegram.config';
 
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    ConfigModule.forRoot({
       isGlobal: true,
       load: [telegramConfig]
-     }),
+    }),
+    EventEmitterModule.forRoot(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       global: true,
@@ -69,6 +72,7 @@ import telegramConfig from './telegram/config/telegram.config';
     WebSocketModule,
     FavoritesModule,
     QuestionsModule,
+    DevicesModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE user_role_type AS ENUM ('RENTER', 'LANDLORD', 'ADMIN');
 CREATE TYPE listing_type AS ENUM ('GARAGE', 'STORAGE', 'PARKING');
 CREATE TYPE listing_period_type AS ENUM ('HOUR', 'DAY', 'WEEK', 'MONTH');
@@ -8,9 +9,43 @@ CREATE TYPE payment_method AS ENUM ('CARD', 'SBP', 'USDT', 'ETH', 'TRX');
 CREATE TYPE payment_status AS ENUM ('PENDING', 'BLOCKED', 'COMPLETED', 'REFUNDED');
 CREATE TYPE transaction_type AS ENUM ('TOPUP', 'CHARGE', 'PAYOUT', 'COMMISSION');
 CREATE TYPE currency_type AS ENUM ('RUB', 'USD', 'USDT', 'ETH', 'TRX');
-CREATE TYPE notification_type AS ENUM ('NEW_BOOKING', 'CONFIRMATION', 'REMINDER', 'MESSAGE');
-CREATE TYPE notification_channel AS ENUM ('TG_BOT', 'PUSH', 'EMAIL');
-CREATE TYPE notification_status AS ENUM('UNREAD', 'READ');
+CREATE TYPE notification_channel AS ENUM ('WEBSOCKET', 'FCM', 'EMAIL', 'SMS', 'TG_BOT');
+CREATE TYPE notification_type AS ENUM (
+    -- Сообщения
+    'MESSAGE_NEW',      -- Новое сообщение в чате
+    
+    -- Бронирования
+    'BOOKING_NEW',       -- Новая бронь (для админа/исполнителя)
+    'BOOKING_CONFIRMED', -- Бронь подтверждена (для клиента)
+    'BOOKING_CANCELLED', -- Бронь отменена
+    'BOOKING_REMINDER',  -- Напоминание о предстоящей брони
+    'BOOKING_EXPIRING',  -- Бронь скоро истечет (неоплачена/неподтверждена)
+    'BOOKING_COMPLETED', -- Бронь завершена
+    
+    -- Объявления
+    'LISTING_APPROVED',  -- Объявление прошло модерацию
+    'LISTING_REJECTED',  -- Объявление отклонено модерацией
+    'LISTING_EXPIRING',  -- Срок размещения скоро истечет
+    'LISTING_EXPIRED',   -- Срок размещения истек
+    
+    -- Отзывы
+    'REVIEW_NEW',        -- Получен новый отзыв
+    
+    -- Платежи
+    'PAYMENT_SUCCESS',   -- Платеж прошел успешно
+    'PAYMENT_FAILED',    -- Ошибка платежа
+    
+    -- Подписки
+    'SUBSCRIPTION_STARTED',      -- Подписка оформлена
+    'SUBSCRIPTION_RENEWED',      -- Подписка продлена
+    'SUBSCRIPTION_EXPIRING',     -- Подписка скоро истечет
+    'SUBSCRIPTION_EXPIRED',      -- Подписка истекла
+    'SUBSCRIPTION_CANCELLED',    -- Подписка отменена
+    'SUBSCRIPTION_PAYMENT_FAILED', -- Не удалось списать оплату за подписку
+    
+    -- Безопасность
+    'LOGIN_NEW'         -- Вход с нового устройства
+);
 CREATE TYPE subscription_status AS ENUM('ACTIVE', 'EXPIRED', 'CANCELLED');
 CREATE TYPE moderation_entity_type AS ENUM ('LISTING', 'REVIEW', 'USER');
 CREATE TYPE moderation_action AS ENUM ('APPROVE', 'REJECT', 'EDIT', 'BAN');
@@ -29,6 +64,7 @@ CREATE TABLE users (
     two_fa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     telegram_id BIGINT,
+    telegram_chat_id BIGINT,
     is_online BOOLEAN NOT NULL DEFAULT FALSE,
     last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -37,6 +73,30 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
+
+
+
+CREATE TABLE user_devices (
+    -- id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id TEXT NOT NULL, -- Уникальный ID самого устройства (UUID с фронта)
+    fcm_token TEXT NOT NULL,
+    platform VARCHAR(20), -- 'ios', 'android', 'web'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+
+CREATE TABLE user_notification_settings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    send_push BOOLEAN DEFAULT true,
+    send_tg_bot BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 
 
@@ -64,7 +124,7 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE INDEX idx_user_tokens_user_id ON refresh_tokens(user_id);
-CREATE INDEX idx_user_tokens_refresh_token ON refresh_tokens(refresh_token_hash);
+CREATE INDEX idx_user_tokens_refresh_token ON refresh_tokens(token_hash);
 
 
 
@@ -252,10 +312,10 @@ CREATE TABLE notifications (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type notification_type NOT NULL,
-    content TEXT NOT NULL,
     channel notification_channel NOT NULL,
-    is_sent BOOLEAN NOT NULL DEFAULT FALSE,
-    status notification_status NOT NULL DEFAULT 'UNREAD',
+    reference_id BIGINT,  -- ID связанной сущности (например, booking_id для уведомлений о бронировании)
+    payload JSONB,
+    is_read BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -357,7 +417,7 @@ CREATE TABLE moderation_logs (
     id BIGSERIAL PRIMARY KEY,
     entity_type moderation_entity_type NOT NULL,
     entity_id BIGINT NOT NULL,
-    admin_id BIGINT NOT NULL REFERENCES users(id) ON DELETE SET NULL,  -- администратор, выполнивший действие
+    admin_id BIGINT REFERENCES users(id) ON DELETE SET NULL,  -- администратор, выполнивший действие
     action moderation_action NOT NULL,
     reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -381,36 +441,3 @@ CREATE TABLE audit_logs (
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
-
-
-
--- Связи между таблицами: 
--- users → user_roles: N:N
--- users → listings: 1:N
--- listings → bookings: 1:N
--- users → bookings: 1:N
--- bookings → payments: 1:1
--- listings → reviews: 1:N
--- users → reviews (from_user_id, to_user_id): 1:N
--- users → wallets: 1:1
--- wallets → wallet_balances: 1:N
--- wallets → transactions: 1:N
--- bookings → transactions: 1:1 
--- users → user_tokens: 1:N
--- users → favorites: 1:N
--- listings → favorites: 1:N
--- users → reposts: 1:N
--- listings → reposts: 1:N
--- listings → questions: 1:N
--- users → questions (from_user_id, to_user_id): 1:N
--- users → view_history: 1:N
--- listings → view_history: 1:N
--- users → user_subscriptions: 1:N
--- subscription_plans → user_subscriptions: 1:N
--- users → conversations (participant1_id, participant2_id): 1:N
--- listings → conversations: 1:N
--- conversations → messages: 1:N
--- users → messages (sender_id): 1:N
--- users → notifications: 1:N
--- users → moderation_logs (admin_id): 1:N
--- users → audit_logs: 1:N
