@@ -25,10 +25,7 @@ export class TelegramAccountService {
    * @throws {NotFoundException} Если пользователь не найден
    */
   async generateTelegramLink(userId: number): Promise<string> {
-    const user = await this.usersService.findById(userId);
-    if (!user) {
-      throw new NotFoundException('Пользователь не найден');
-    }
+    await this.usersService.validateUserExistence(userId);
 
     const botUsername = this.setupService.getBotUsername();
     const token = await this.verificationService.generateToken(userId);

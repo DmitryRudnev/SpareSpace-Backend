@@ -36,8 +36,8 @@ export class TelegramBookingsHandlerService {
   async sendRoleSelection(chatId: number): Promise<void> {
     const keyboard = Markup.inlineKeyboard([
       [
-        Markup.button.callback('📤 Я арендатор', 'bookings:role:renter'),
-        Markup.button.callback('📥 Я арендодатель', 'bookings:role:landlord'),
+        Markup.button.callback('📤 Вы арендуете', 'bookings:role:renter'),
+        Markup.button.callback('📥 Вы сдаёте в аренду', 'bookings:role:landlord'),
       ],
     ]);
 
@@ -59,17 +59,8 @@ export class TelegramBookingsHandlerService {
     try {
       const user = await this.usersService.findByTelegramId(telegramId);
       
-      // Подсчет общего количества для пагинации (нужно реализовать методы подсчета с фильтрами в сервисе, 
-      // либо использовать total из findAll, но для пагинации лучше знать заранее)
-      // В данном случае используем findAll, так как он возвращает total
-      const searchDto: SearchBookingsDto = {
-        userRole: role,
-        limit: this.paginationService.getItemsPerPage(),
-        offset: (page - 1) * this.paginationService.getItemsPerPage(),
-      };
-
-      const result = await this.bookingsService.findAll(searchDto, user.id);
-      const totalPages = this.paginationService.calculateTotalPages(result.total);
+      const totalBookingsCount = await this.bookingsService.countByRole(user.id, role);
+      const totalPages = this.paginationService.calculateTotalPages(totalBookingsCount);
 
       // Валидация страницы
       if (page < 1 || (page > totalPages && totalPages > 0)) {
@@ -77,10 +68,10 @@ export class TelegramBookingsHandlerService {
          return; 
       }
 
-      if (result.bookings.length === 0) {
+      if (totalBookingsCount === 0) {
         const emptyText = role === UserRoleType.LANDLORD 
-          ? '📭 У вас нет входящих бронирований.' 
-          : '📭 У вас нет активных бронирований.';
+          ? '📭 Вы ничего не сдавали в аренду.' 
+          : '📭 Вы ничего не арендовали.';
         
         if (messageId) {
           // Если это обновление существующего сообщения, убираем кнопки
@@ -93,6 +84,14 @@ export class TelegramBookingsHandlerService {
         }
         return;
       }
+
+      
+      const searchDto: SearchBookingsDto = {
+        userRole: role,
+        limit: this.paginationService.getItemsPerPage(),
+        offset: (page - 1) * this.paginationService.getItemsPerPage(),
+      };
+      const result = await this.bookingsService.findAll(searchDto, user.id);
 
       const message = this.buildBookingsMessage(result.bookings, page, result.total, role);
       
@@ -116,7 +115,7 @@ export class TelegramBookingsHandlerService {
 
   
   private buildBookingsMessage(bookings: any[], page: number, total: number, role: UserRoleType): string {
-    const roleTitle = role === UserRoleType.LANDLORD ? 'Входящие бронирования' : 'Мои поездки';
+    const roleTitle = role === UserRoleType.LANDLORD ? 'Вы сдаёте в аренду' : 'Вы арендуете';
     let message = `📅 *${roleTitle}* (стр. ${page})\n\n`;
 
     bookings.forEach((booking, index) => {
@@ -126,7 +125,7 @@ export class TelegramBookingsHandlerService {
       const isLandlordView = role === UserRoleType.LANDLORD;
       const otherParty = isLandlordView ? 
         `👤 Арендатор: ${booking.renter.firstName} ${booking.renter.lastName}` :
-        `👤 Хост: ${booking.listing.user.firstName} ${booking.listing.user.lastName}`;
+        `👤 Владелец: ${booking.listing.user.firstName} ${booking.listing.user.lastName}`;
 
       message += `${index + 1}. *${booking.listing.title}*\n` +
         `💰 Цена: ${formattedPrice} ${booking.currency}\n` +
