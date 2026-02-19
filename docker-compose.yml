@@ -2,8 +2,9 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: spare_space_db
-    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: any
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 0
@@ -17,9 +18,10 @@ services:
       - backend
 
   backend:
-    build: .
-    container_name: spare_space_backend
-    restart: unless-stopped
+    image: spare-space-backend:latest
+    deploy:
+      restart_policy:
+        condition: any
     depends_on:
       - postgres
     environment:
@@ -48,4 +50,3 @@ volumes:
 
 networks:
   backend:
-  
